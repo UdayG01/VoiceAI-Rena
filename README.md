@@ -1,6 +1,6 @@
 # Rena - RenataAI's Support Assistant
 
-This project demonstrates voice interactions with AI assistants using FastRTC and Groq.
+Creating an AI voice assistant prototype for RenataAI team.
 
 ## Setup
 
