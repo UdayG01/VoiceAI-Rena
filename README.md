@@ -1,4 +1,4 @@
-# FastRTC Groq Voice Agent
+# Rena - RenataAI's Support Assistant
 
 This project demonstrates voice interactions with AI assistants using FastRTC and Groq.
 
@@ -20,21 +20,9 @@ Navigate to the src directory:
 cd src
 ```
 
-Run with web UI (default):
+Run with web UI:
 ```
 python fastrtc_groq_voice_stream.py
 ```
 
-Run with phone interface (get a temporary phone number):
-```
-python fastrtc_groq_voice_stream.py --phone
-```
 
-## Usage Examples
-
-### Math Agent Commands
-
-- "What is 5 plus 7?"
-- "Can you multiply 12 and 4?"
-- "Calculate the sum of 123 and 456"
-"# VoiceAI-Rena" 
