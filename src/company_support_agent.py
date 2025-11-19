@@ -43,36 +43,53 @@ def company_info(query: str) -> dict:
     query = query.lower()
     result = {}
 
-    # Founder
-    if "founder" in query or "co-founder" in query:
-        result["founder"] = COMPANY_DATA["co_founder"]
+    synonyms = {
+        "full_summary": ["about", "company", "renata", "who are you", "history", "details", "overview", "introduction"],
+        "founder": ["founder", "co-founder", "who started", "owner", "leadership"],
+        "mission": ["mission", "vision", "goal", "purpose"],
+        "services": ["services", "offerings", "capabilities", "solutions", "products", "expertise"],
+        "verticals": ["verticals", "segments", "solution categories"],
+        "clients": ["clients", "customers", "companies you work with", "partners"]
+    }
 
-    # General/About
-    if "what do you do" in query or "about" in query or "who are you" in query:
+    def matches(category):
+        return any(keyword in query for keyword in synonyms[category])
+
+    # Full summary mode for broad inquiries
+    if matches("full_summary"):
         result["overview"] = {
             "name": COMPANY_DATA["company_name"],
             "location": COMPANY_DATA["location"],
             "industry": COMPANY_DATA["industry"],
-            "mission": COMPANY_DATA["mission"],
-            "customers": COMPANY_DATA["customers"]
+            "founded_year": COMPANY_DATA["founded_year"],
+            "mission": COMPANY_DATA["mission"]
         }
+        result["founder"] = COMPANY_DATA["co_founder"]
+        result["verticals"] = [v["name"] for v in COMPANY_DATA["solution_verticals"]]
+        result["services"] = [cap for v in COMPANY_DATA["solution_verticals"] for cap in v["capabilities"]]
+        result["customers"] = COMPANY_DATA["customers"]
+        return result
 
-    # Mission
-    if "mission" in query or "goal" in query:
+    # Partial queries
+    if matches("founder"):
+        result["founder"] = COMPANY_DATA["co_founder"]
+
+    if matches("mission"):
         result["mission"] = COMPANY_DATA["mission"]
 
-    # Vertical List
-    if "vertical" in query or "solutions" in query or "segments" in query:
+    if matches("verticals"):
         result["verticals"] = [v["name"] for v in COMPANY_DATA["solution_verticals"]]
 
-    # Detailed Services
-    if "service" in query or "capabilities" in query or "offer" in query:
+    if matches("services"):
         services = []
         for v in COMPANY_DATA["solution_verticals"]:
             services.extend(v["capabilities"])
         result["services"] = services
 
-    # Nothing matched
+    if matches("clients"):
+        result["customers"] = COMPANY_DATA["customers"]
+
+    # Fallback
     if not result:
         return {"error": "NO_MATCH"}
 
@@ -190,6 +207,23 @@ Tool Usage Rules:
 - Only call a tool when necessary.
 - Always pass tool arguments in valid JSON format with no quotes around numbers unless they are text fields.
 - After a tool completes, continue speaking conversationally to the user.
+
+Company Information Handling Rules:
+- If the user asks any question related to Renata, its founder, services, offerings, mission, customers, industry, history, or general company details, use the `company_info` tool to retrieve the information.
+- For broad or open-ended questions (e.g., "Tell me about Renata", "What does your company do?", "Company details"), call the tool using a general query such as: "full_summary".
+- For specific questions (e.g., "Who founded Renata?", "What services do you offer?"), call the tool using focused keywords such as: ("founder", "mission", "services", "verticals", "clients").
+- If you are unsure whether the answer requires verified company information, default to calling the tool rather than guessing.
+- After receiving tool results, rewrite the information into a clear, natural conversational response. Never display raw JSON output.
+- If multiple categories of information are returned, present them in this preferred order:
+    1) Company overview
+    2) Mission
+    3) Founder
+    4) Solutions / Services / Verticals
+    5) Customers / clients
+- Keep responses concise but helpful. If the output is lengthy, summarize and optionally ask:
+    "Would you like a more detailed breakdown?"
+- If the tool returns `"error"` or no match, respond:
+    "I couldn't find information on that. Would you like me to forward this to a support specialist?"
 
 Complaint Handling Flow:
 - If user expresses a complaint intent (keywords: 'issue', 'problem', 'not working', 'support', 'ticket', 'complaint'):

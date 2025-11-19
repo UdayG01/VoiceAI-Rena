@@ -1,7 +1,7 @@
 {
   "company_name": "Renata",
   "location": "Gurgaon, India",
-  "customers": "Clients across India",
+  "customers": ["Clients across India", "Marelli India", "Siddharth Grease and Lubes", "JBM Group", "Advance Valves"],
   "founded_year": 2018,
   "industry": "Manufacturing Technology, IIoT & AI Automation",
   "co_founder": {
