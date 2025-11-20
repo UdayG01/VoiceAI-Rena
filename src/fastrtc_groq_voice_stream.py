@@ -7,6 +7,7 @@ from fastrtc import (
     ReplyOnPause,
     Stream,
     audio_to_bytes,
+    get_tts_model
 )
 from groq import Groq
 from loguru import logger
@@ -63,6 +64,10 @@ def response(
     )
     yield from process_groq_tts(tts_response)
 
+tts_client = get_tts_model()
+def startup():
+    for chunk in tts_client.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
+        yield chunk
 
 def create_stream() -> Stream:
     """
@@ -79,7 +84,9 @@ def create_stream() -> Stream:
             algo_options=AlgoOptions(
                 speech_threshold=0.5,
             ),
+            startup_fn=startup
         ),
+        ui_args={"title": "RenataAI's Support Assistant"}
     )
 
 import gradio as gr
@@ -156,5 +163,5 @@ if __name__ == "__main__":
         stream.fastphone()
     else:
         logger.info("🌈 Launching custom Gradio UI...")
-        build_custom_ui(stream)
+        #build_custom_ui(stream)
         stream.ui.launch()
