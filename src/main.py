@@ -2,18 +2,19 @@ import argparse
 from typing import Generator, Tuple
 
 import numpy as np
+import os
 from fastrtc import (
     AlgoOptions,
     ReplyOnPause,
     Stream,
     audio_to_bytes,
-    get_tts_model
+    get_tts_model,
+    KokoroTTSOptions
 )
 from groq import Groq
 from loguru import logger
 
 from process_groq_tts import process_groq_tts
-#from simple_math_agent import agent, agent_config
 from company_support_agent import agent, agent_config
 
 logger.remove()
@@ -25,7 +26,13 @@ logger.add(
 
 groq_client = Groq()
 
+model = get_tts_model(model="kokoro")
 
+options = KokoroTTSOptions(
+    voice="af_heart",
+    speed=1.0,
+    lang="en-us"
+)
 def response(
     audio: tuple[int, np.ndarray],
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
@@ -64,10 +71,6 @@ def response(
     )
     yield from process_groq_tts(tts_response)
 
-tts_client = get_tts_model()
-def startup():
-    for chunk in tts_client.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
-        yield chunk
 
 def create_stream() -> Stream:
     """
@@ -84,9 +87,7 @@ def create_stream() -> Stream:
             algo_options=AlgoOptions(
                 speech_threshold=0.5,
             ),
-            startup_fn=startup
         ),
-        # ui_args={"title": "RenataAI's Support Assistant"}
     )
 
 import gradio as gr
@@ -97,38 +98,36 @@ import gradio as gr
 from fastrtc import WebRTC, ReplyOnPause
 
 def build_custom_ui(stream: Stream):
-    with gr.Blocks() as ui:
-        gr.HTML(
+    with gr.Blocks(theme="soft") as ui:
+
+        gr.Markdown(
             """
-        <h1 style='text-align: center'>
-        Renata's Support Bot
-        </h1>
-        """
-        )
-        with gr.Column():
-            with gr.Group():
-                # WebRTC audio stream (MIC)
-                audio = WebRTC(
-                    mode="send-receive",
-                    modality="audio"
-                )
-            # Bind your response generator
-            audio.stream(
-                fn=ReplyOnPause(response), inputs=[audio], outputs=[audio], time_limit=500
-            )
-        gr.HTML(
-            """
-            <style>
-                button.show-api { display: none !important; }
-                a.built-with { display: none !important; }
-                button.settings { display: none !important; }
-            </style>
+            <h1 style="text-align:center; font-size:36px;">
+            🤖 Renata Support Bot
+            </h1>
+            <p style="text-align:center; font-size:18px; margin-top:-10px;">
+            Speak freely — the assistant will respond when you pause.
+            </p>
             """
         )
+
+        # WebRTC audio stream (MIC)
+        audio_stream = WebRTC(
+            label="🎤 Tap to Speak",
+            mode="send-receive",
+            modality="audio",
+        )
+
+        # Bind your response generator
+        audio_stream.stream(
+            fn=ReplyOnPause(response),
+            inputs=[audio_stream],
+            outputs=[audio_stream],
+            time_limit=500
+        )
+
     # Override default UI
     stream.ui = ui
-
-
 
 
 

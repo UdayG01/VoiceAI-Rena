@@ -8,7 +8,7 @@ from loguru import logger
 
 # --- 1. Configuration & File Paths ---
 # Assuming renata_data.json is located here (as per your initial setup):
-COMPANY_DATA_FILE = r"C:\Users\user\OneDrive\Documents\RenataVoiceAgent\renata_data.json"
+COMPANY_DATA_FILE = "src/renata_data.json"
 INDEX_FILE_PATH = "company_rag_index.bin"
 CORPUS_FILE_PATH = "company_corpus_chunks.npy"
 # The temporary file that holds the plain text to be indexed
