@@ -93,36 +93,6 @@ def create_stream() -> Stream:
         ui_args={"title": "Renata Support Bot"}
     )
 
-def build_custom_ui(stream: Stream):
-    with gr.Blocks(theme="soft") as ui:
-        gr.Markdown(
-            """
-            <h1 style="text-align:center; font-size:36px;">
-            🤖 Renata Support Bot
-            </h1>
-            <p style="text-align:center; font-size:18px; margin-top:-10px;">
-            Speak freely — the assistant will respond when you pause.
-            </p>
-            """
-        )
-
-        # WebRTC audio stream (MIC)
-        audio_stream = WebRTC(
-            label="🎤 Tap to Speak",
-            mode="send-receive",
-            modality="audio",
-        )
-
-        # Bind your response generator
-        audio_stream.stream(
-            fn=ReplyOnPause(response),
-            inputs=[audio_stream],
-            outputs=[audio_stream],
-            time_limit=500
-        )
-
-    # Override default UI
-    stream.ui = ui
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FastRTC Groq Voice Agent")
@@ -137,5 +107,4 @@ if __name__ == "__main__":
         stream.fastphone()
     else:
         logger.info("🌈 Launching custom Gradio UI...")
-        # build_custom_ui(stream)
         stream.ui.launch()
