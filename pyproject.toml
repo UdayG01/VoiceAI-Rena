@@ -19,4 +19,6 @@ dependencies = [
     "sentence-transformers>=5.1.2",
     "faiss-cpu>=1.13.0",
     "langchain-openai>=0.3.35",
+    "ngrok>=1.6.0",
+    "pyngrok>=7.5.0",
 ]

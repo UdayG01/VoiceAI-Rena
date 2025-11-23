@@ -546,7 +546,9 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "loguru" },
+    { name = "ngrok" },
     { name = "numpy" },
+    { name = "pyngrok" },
     { name = "sentence-transformers" },
     { name = "twilio" },
 ]
@@ -564,7 +566,9 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=0.3.35" },
     { name = "langgraph", specifier = ">=0.1.18" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "ngrok", specifier = ">=1.6.0" },
     { name = "numpy", specifier = ">=2.1.3" },
+    { name = "pyngrok", specifier = ">=7.5.0" },
     { name = "sentence-transformers", specifier = ">=5.1.2" },
     { name = "twilio", specifier = ">=9.8.7" },
 ]
@@ -1468,6 +1472,24 @@ wheels = [
 ]
 
 [[package]]
+name = "ngrok"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/58/f75dc9761abbaebb43c79f606d433ca83540c9be1c7549080a0741620338/ngrok-1.6.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:0b6c4779bdefaeb5e58b9ea2618e5e1e4521ff0dabb788b103ffc8b262cfcab4", size = 7167655, upload-time = "2025-11-18T22:37:10.733Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/50/475260ceda16c3d2d4905c792205cf9cec740709487537b7ef3504fe3724/ngrok-1.6.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:6ca623681402bbf60e312ab0343f7742740830e005dd99c79818611bff062982", size = 3723564, upload-time = "2025-11-18T22:35:05.253Z" },
+    { url = "https://files.pythonhosted.org/packages/19/79/0862df07b6d14c589d41f9e3ebdc61d10d98cecadd4b8b60991c915e63d1/ngrok-1.6.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:53fac6c539971bd1346823dbcd53579b6600027cd8d4a27c92dea761f4753bed", size = 3459058, upload-time = "2025-11-18T22:36:02.004Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/59/5f243aa260265bee420c40cfc3f9dc3fe3434b2898872a1883ab709fd910/ngrok-1.6.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a48de799d464fd158713b63da5d581d415f0f182c1b8d5945f7abd2fa91f2b75", size = 5582618, upload-time = "2025-11-18T22:37:07.374Z" },
+    { url = "https://files.pythonhosted.org/packages/35/a7/2ddee2488fa8bd00fa7346fa171d44fdbc1af19fc5f450b1db52a1a1ae49/ngrok-1.6.0-cp310-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2ccc521201f7d65a565aa70d7babc21630df9583cf97a6d4404028519dd0851b", size = 4500819, upload-time = "2025-11-18T22:37:51.329Z" },
+    { url = "https://files.pythonhosted.org/packages/24/5a/0c40eff63eb8a22503289b2d8430901fb945c0fcc774442cc8e8bb95461f/ngrok-1.6.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eebdde36e49117f47d3741fb7fc5d511aa77dee2d52ad25ad99cce5f0b43b145", size = 3792523, upload-time = "2025-11-18T22:37:38.745Z" },
+    { url = "https://files.pythonhosted.org/packages/29/fc/fa28f6b8727ddd995fe74be88362cc68f99884f0060b62ff8a127e00b8a4/ngrok-1.6.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:dcc5ea2b11c128b65e80721c86990261420003edf4da00229d46086887d77126", size = 3600231, upload-time = "2025-11-18T22:40:04.33Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/f8/5e76b57b8f2cae4e18dc29854c0262a590c1f239b8754e6d670288822478/ngrok-1.6.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:06bdb09073a36a5e7de73bf6659e09a00b2062e250b4a0abc2d80214d5a9368f", size = 3895674, upload-time = "2025-11-18T22:41:22.869Z" },
+    { url = "https://files.pythonhosted.org/packages/91/a9/9a5a4077a17fc1bc2dd8085f7ca69a3ae2c40d6a270232049205c1635dff/ngrok-1.6.0-cp310-abi3-win32.whl", hash = "sha256:df5a6650d250efd5d76058a7e4297b077c5f953bddc6b010138a076edacf4a0c", size = 3197299, upload-time = "2025-11-18T22:37:42.684Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/4c/c088aba88b35f55070fb1ffe9dc847122e3814175288509c923724a1363f/ngrok-1.6.0-cp310-abi3-win_amd64.whl", hash = "sha256:3832f07228a93ed75f21c3021b7861012df9c84c409a75285de7f849c9de2bed", size = 3787020, upload-time = "2025-11-18T22:36:46.185Z" },
+    { url = "https://files.pythonhosted.org/packages/94/76/b5cbc1d89c8ec530019e39c009da9c9e9d69ba70b5aecced8413a98dadf6/ngrok-1.6.0-cp310-abi3-win_arm64.whl", hash = "sha256:eddcacc9144765d012c236854befe40e78fd17b612d51efd32ac440476a96131", size = 3468837, upload-time = "2025-11-18T22:37:37.896Z" },
+]
+
+[[package]]
 name = "numba"
 version = "0.61.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2023,6 +2045,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/67/c2/2ed7a4a5c38b999fd34298f76b93d29f5ba8c06f85cfad3efd9468343715/pylibsrtp-0.12.0-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:0a8421e9fe4d20ce48d439430e55149f12b1bca1b0436741972c362c49948c0a", size = 2256774, upload-time = "2025-04-06T12:35:47.704Z" },
     { url = "https://files.pythonhosted.org/packages/48/d7/f13fedce3b21d24f6f154d1dee7287464a34728dcb3b0c50f687dbad5765/pylibsrtp-0.12.0-cp39-abi3-win32.whl", hash = "sha256:cbc9bfbfb2597e993a1aa16b832ba16a9dd4647f70815421bb78484f8b50b924", size = 1156186, upload-time = "2025-04-06T12:35:48.78Z" },
     { url = "https://files.pythonhosted.org/packages/9b/26/3a20b638a3a3995368f856eeb10701dd6c0e9ace9fb6665eeb1b95ccce19/pylibsrtp-0.12.0-cp39-abi3-win_amd64.whl", hash = "sha256:061ef1dbb5f08079ac6d7515b7e67ca48a3163e16e5b820beea6b01cb31d7e54", size = 1485072, upload-time = "2025-04-06T12:35:50.312Z" },
+]
+
+[[package]]
+name = "pyngrok"
+version = "7.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/7c/788a44567ffbad7c2d838e79a388ae5045520410f953c5097ad664d4763d/pyngrok-7.5.0.tar.gz", hash = "sha256:2fe91cba2c2531ecfb124b5071f377808b61a68a14ca3c99fcb7f3fdae05278f", size = 43149, upload-time = "2025-11-17T17:36:50.463Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/60/ab93dfb5721ba65f36bb6c2e07adfa21a8ac6525760b60f2ad6d31f7d098/pyngrok-7.5.0-py3-none-any.whl", hash = "sha256:1e50e71a59f1086f59e12e3d186f07ae2cbdccaf6f523678ef7ce3a180aba5c4", size = 24785, upload-time = "2025-11-17T17:36:49.372Z" },
 ]
 
 [[package]]
