@@ -11,15 +11,17 @@ from fastrtc import (
     get_tts_model,
     get_stt_model,
     KokoroTTSOptions,
+    SileroVadOptions,
     WebRTC
 )
+from fastapi import FastAPI
+
 import gradio as gr
 from loguru import logger
 
 # Keep agent imports for the LLM part
 from company_support_agent import agent, agent_config
 
-# Remove process_groq_tts as it is no longer needed
 # from process_groq_tts import process_groq_tts 
 
 logger.remove()
@@ -86,7 +88,10 @@ def create_stream() -> Stream:
         handler=ReplyOnPause(
             response,
             algo_options=AlgoOptions(
-                speech_threshold=0.5,
+                speech_threshold=0.6,
+            ),
+            model_options=SileroVadOptions(
+                threshold=0.7
             ),
             startup_fn=startup
         ),
@@ -95,7 +100,7 @@ def create_stream() -> Stream:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="FastRTC Groq Voice Agent")
+    parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
     args = parser.parse_args()
 
@@ -104,7 +109,10 @@ if __name__ == "__main__":
 
     if args.phone:
         logger.info("📞 Launching with phone interface...")
-        stream.fastphone()
+        import uvicorn         
+        app = FastAPI()
+        stream.mount(app)
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
-        logger.info("🌈 Launching custom Gradio UI...")
+        logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()

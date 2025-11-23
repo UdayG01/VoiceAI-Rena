@@ -10,7 +10,8 @@ from datetime import datetime
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from langchain_groq import ChatGroq
+#from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langchain.tools import tool
@@ -50,6 +51,11 @@ except Exception as e:
     logger.error(f"❌ Error loading RAG components: {e}. The RAG search tool will not function.")
 
 
+"""
+# TOOLS FOR THE AGENT
+- RAG Search Tool: Retrieves relevant company info from the knowledge base.
+- Complaint Registration Tool: Gathers complaint details and sends confirmation email.
+"""
 # The load_company_data function is updated to look for 'renata_data.json'.
 def load_company_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -210,10 +216,7 @@ Renata Support Team
     }
 
 
-# --- 4. Tool List and System Prompt Update ---
-
-# Note: 'company_info' is replaced with 'rag_search'
-tools = [rag_search, register_complaint]
+"""Tool List and System Prompt Update"""
 
 system_prompt = """
 You are Rena (Renata AI's Support Assistant), an AI representative for Renata.
@@ -256,12 +259,24 @@ Your Goal:
 Provide an experience similar to a real customer service representative.
 """
 
-# --- 5. LangGraph/Groq Agent Setup (Unchanged) ---
-model = ChatGroq(
-    model="llama-3.1-8b-instant",
-    max_tokens=256,
-)
+tools = [rag_search, register_complaint]
 
+# --- 5. LangGraph/Groq Agent Setup (Unchanged) ---
+# model = ChatGroq(
+#     model="llama-3.1-8b-instant",
+#     max_tokens=256,
+# )
+
+
+"""
+    LANGRAPH AGENT SETUP
+"""
+model = ChatOpenAI(
+  api_key=os.getenv("OPENROUTER_API_KEY"),
+  base_url="https://openrouter.ai/api/v1",
+  model="x-ai/grok-4.1-fast:free",
+  max_tokens=256
+)
 memory = InMemorySaver()
 
 agent = create_react_agent(
