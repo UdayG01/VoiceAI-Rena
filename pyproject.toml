@@ -18,4 +18,5 @@ dependencies = [
     "twilio>=9.8.7",
     "sentence-transformers>=5.1.2",
     "faiss-cpu>=1.13.0",
+    "langchain-openai>=0.3.35",
 ]
