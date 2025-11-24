@@ -103,6 +103,7 @@ def create_stream() -> Stream:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
+    parser.add_argument("--fastphone", action="store_true")
     args = parser.parse_args()
 
     stream = create_stream()
@@ -121,7 +122,9 @@ if __name__ == "__main__":
         app = FastAPI()
         stream.mount(app)
         uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None)
-        #uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+    elif args.fastphone:
+        stream.fastphone()
     else:
         logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()

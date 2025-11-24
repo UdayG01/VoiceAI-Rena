@@ -9,8 +9,12 @@ from fastrtc import (
     Stream,
     audio_to_bytes,
     get_tts_model,
-    KokoroTTSOptions
+    KokoroTTSOptions,
+    SileroVadOptions
 )
+
+from fastapi import FastAPI, WebSocket, Request
+
 from groq import Groq
 from loguru import logger
 
@@ -26,7 +30,7 @@ logger.add(
 
 groq_client = Groq()
 
-model = get_tts_model(model="kokoro")
+tts_model = get_tts_model(model="kokoro")
 
 options = KokoroTTSOptions(
     voice="af_heart",
@@ -71,13 +75,13 @@ def response(
     )
     yield from process_groq_tts(tts_response)
 
+def startup():
+    for chunk in tts_model.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
+        yield chunk
 
 def create_stream() -> Stream:
     """
     Create and configure a Stream instance with audio capabilities.
-
-    Returns:
-        Stream: Configured FastRTC Stream instance
     """
     return Stream(
         modality="audio",
@@ -85,75 +89,21 @@ def create_stream() -> Stream:
         handler=ReplyOnPause(
             response,
             algo_options=AlgoOptions(
-                speech_threshold=0.5,
+                speech_threshold=0.6,
             ),
+            model_options=SileroVadOptions(
+                threshold=0.7
+            ),
+            startup_fn=startup
         ),
+        ui_args={"title": "Renata Support Bot"}
     )
-
-import gradio as gr
-from fastrtc import WebRTC, ReplyOnPause
-
-
-import gradio as gr
-from fastrtc import WebRTC, ReplyOnPause
-
-def build_custom_ui(stream: Stream):
-    with gr.Blocks(theme="soft") as ui:
-
-        gr.Markdown(
-            """
-            <h1 style="text-align:center; font-size:36px;">
-            🤖 Renata Support Bot
-            </h1>
-            <p style="text-align:center; font-size:18px; margin-top:-10px;">
-            Speak freely — the assistant will respond when you pause.
-            </p>
-            """
-        )
-
-        # WebRTC audio stream (MIC)
-        audio_stream = WebRTC(
-            label="🎤 Tap to Speak",
-            mode="send-receive",
-            modality="audio",
-        )
-
-        # Bind your response generator
-        audio_stream.stream(
-            fn=ReplyOnPause(response),
-            inputs=[audio_stream],
-            outputs=[audio_stream],
-            time_limit=500
-        )
-
-    # Override default UI
-    stream.ui = ui
-
-
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="FastRTC Groq Voice Agent")
-#     parser.add_argument(
-#         "--phone",
-#         action="store_true",
-#         help="Launch with FastRTC phone interface (get a temp phone number)",
-#     )
-#     args = parser.parse_args()
-
-#     stream = create_stream()
-#     logger.info("🎧 Stream handler configured")
-
-#     if args.phone:
-#         logger.info("🌈 Launching with FastRTC phone interface...")
-#         stream.fastphone()
-#     else:
-#         logger.info("🌈 Launching with Gradio UI...")
-#         stream.ui.launch()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="FastRTC Groq Voice Agent")
+    parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
+    parser.add_argument("--fastphone", action="store_true")
     args = parser.parse_args()
 
     stream = create_stream()
@@ -161,8 +111,31 @@ if __name__ == "__main__":
 
     if args.phone:
         logger.info("📞 Launching with phone interface...")
+
+        # Start ngrok tunnel
+        from pyngrok import ngrok
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+        public_url = ngrok.connect(8000, "http")
+        logger.info(f"🌍 Public ngrok URL: {public_url}")
+
+        import uvicorn
+
+        app = FastAPI()
+        stream.mount(app)
+        # @app.api_route("/incoming-call", methods=["GET", "POST"])
+        # async def handle_incoming_call(request: Request):
+        #     """Handle incoming call and return TwiML response to connect to Media Stream."""
+        #     response = await stream.handle_incoming_call(request)
+        #     return response
+        # @app.websocket("incoming-call/telephone/handler")
+        # async def handle_media_stream(websocket: WebSocket):
+        #     """Handle WebSocket connections between Twilio and Media Stream."""
+        #     await stream.telephone_handler(websocket)
+        
+        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None)
+        #uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+    elif args.fastphone:
         stream.fastphone()
     else:
-        logger.info("🌈 Launching custom Gradio UI...")
-        build_custom_ui(stream)
+        logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()

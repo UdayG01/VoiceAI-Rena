@@ -21,4 +21,8 @@ dependencies = [
     "langchain-openai>=0.3.35",
     "ngrok>=1.6.0",
     "pyngrok>=7.5.0",
+    "langchain-community>=0.3.31",
+    "jq>=1.10.0",
+    "redis>=5.0.0",
+    "langchain-redis>=0.2.4",
 ]

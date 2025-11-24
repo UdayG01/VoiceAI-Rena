@@ -277,6 +277,7 @@ model = ChatOpenAI(
   model="x-ai/grok-4.1-fast:free",
   max_tokens=256
 )
+
 memory = InMemorySaver()
 
 agent = create_react_agent(
