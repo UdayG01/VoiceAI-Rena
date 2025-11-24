@@ -2,6 +2,7 @@ import argparse
 from typing import Generator, Tuple
 import numpy as np
 import os
+from contextlib import asynccontextmanager
 
 # 1. Import STT and TTS model loaders
 from fastrtc import (
@@ -102,6 +103,7 @@ def create_stream() -> Stream:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
+    parser.add_argument("--fastphone", action="store_true")
     args = parser.parse_args()
 
     stream = create_stream()
@@ -109,10 +111,20 @@ if __name__ == "__main__":
 
     if args.phone:
         logger.info("📞 Launching with phone interface...")
-        import uvicorn         
+
+        # Start ngrok tunnel
+        from pyngrok import ngrok
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+        public_url = ngrok.connect(8000, "http")
+        logger.info(f"🌍 Public ngrok URL: {public_url}")
+
+        import uvicorn
         app = FastAPI()
         stream.mount(app)
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None)
+        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+    elif args.fastphone:
+        stream.fastphone()
     else:
         logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()
