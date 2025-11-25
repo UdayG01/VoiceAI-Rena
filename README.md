@@ -25,4 +25,13 @@ Run with web UI:
 python fastrtc_groq_voice_stream.py
 ```
 
+## Remaining features
+1. Local deployment of
+  - LLM (Ollama - Qwen3:0.6B worked perfectly on my system - (i5 12500H 16GB RAM) (RTX 3050 6GB VRAM)
+  - TTS - explorint CoquiTTS, KokoroTTS, and some other hugging face options like XTTS
+  - STT - moonshine/base not giving accurate results, we will probably move to Whisper
+2. Fallback/Failsafe for tools
+  - If valid email not received, the LLM should again ask for a valid email address, and repeat it, currently, there is no failsafe, even if correct email is not received, it generates a ticket and terminates.
+  - Async voice output whilst RAG outputs are recieved to keep the user engaged.
+
 
