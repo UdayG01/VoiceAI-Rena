@@ -10,8 +10,9 @@ from datetime import datetime
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
-#from langchain_groq import ChatGroq
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langchain.tools import tool
@@ -261,23 +262,28 @@ Provide an experience similar to a real customer service representative.
 
 tools = [rag_search, register_complaint]
 
-# --- 5. LangGraph/Groq Agent Setup (Unchanged) ---
-# model = ChatGroq(
-#     model="llama-3.1-8b-instant",
-#     max_tokens=256,
-# )
 
 
 """
     LANGRAPH AGENT SETUP
 """
-model = ChatOpenAI(
-  api_key=os.getenv("OPENROUTER_API_KEY"),
-  base_url="https://openrouter.ai/api/v1",
-  model="x-ai/grok-4.1-fast:free",
-  max_tokens=256
-)
+# model = ChatGroq(
+#     model="llama-3.1-8b-instant",
+#     max_tokens=256,
+# )
 
+# model = ChatOpenAI(
+#   api_key=os.getenv("OPENROUTER_API_KEY"),
+#   base_url="https://openrouter.ai/api/v1",
+#   model="x-ai/grok-4.1-fast:free",
+#   max_tokens=256
+# )
+
+model = ChatOllama(
+    model="qwen3:0.6b",
+    temperature=0,
+    max_tokens=256,
+)
 memory = InMemorySaver()
 
 agent = create_react_agent(

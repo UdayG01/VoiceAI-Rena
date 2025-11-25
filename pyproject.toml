@@ -25,4 +25,6 @@ dependencies = [
     "jq>=1.10.0",
     "redis>=5.0.0",
     "langchain-redis>=0.2.4",
+    "ollama>=0.6.1",
+    "langchain-ollama>=0.3.10",
 ]
