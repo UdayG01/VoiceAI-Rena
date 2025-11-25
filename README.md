@@ -28,6 +28,8 @@ Run with FastRTC phone (quick trial):
 python src/main.py --fastphone
 ```
 
+## First look
+https://github.com/user-attachments/assets/9738ad82-0b3f-4b4b-8892-3fa42542d6f8
 
 ## Remaining features
 1. Local deployment of
