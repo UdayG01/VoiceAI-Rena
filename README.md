@@ -15,15 +15,19 @@ Creating an AI voice assistant prototype for RenataAI team.
 
 ## Running the Application
 
-Navigate to the src directory:
-```
-cd src
-```
-
 Run with web UI:
 ```
-python fastrtc_groq_voice_stream.py
+python src/main.py
 ```
+Run with Twilio contact:
+```
+python src/main.py --phone
+```
+Run with FastRTC phone (quick trial):
+```
+python src/main.py --fastphone
+```
+
 
 ## Remaining features
 1. Local deployment of
