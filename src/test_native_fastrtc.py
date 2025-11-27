@@ -10,7 +10,7 @@ from fastrtc import (
     ReplyOnPause,
     Stream,
     get_tts_model,
-    get_stt_model,
+    # get_stt_model, # Commented out as we are using faster_whisper
     KokoroTTSOptions,
     SileroVadOptions,
     WebRTC
@@ -34,8 +34,31 @@ logger.add(
 
 # 2. Initialize the Local Models (Global scope to load weights once)
 # Moonshine is the default STT model in FastRTC
-stt_model = get_stt_model() 
+#stt_model = get_stt_model() 
 
+"""
+TESTING CTRANSLATE2 (FASTER-WHISPER)
+"""
+# Use 'base' or 'small' for best performance/accuracy balance on CPU.
+# Use compute_type='int8' for 4x speedup on CPU over vanilla Whisper.
+from faster_whisper import WhisperModel
+WHISPER_MODEL_SIZE = "small"
+WHISPER_DEVICE = "cpu"
+try:
+    logger.info(f"⏳ Loading local STT model ({WHISPER_MODEL_SIZE} on {WHISPER_DEVICE})...")
+    local_stt_model = WhisperModel(
+        WHISPER_MODEL_SIZE, 
+        device=WHISPER_DEVICE, 
+        compute_type="int8"
+    )
+    logger.info(" Local STT model loaded successfully.")
+except Exception as e:
+    logger.error(f" Failed to load Faster-Whisper model: {e}")
+    # Consider keeping groq_client call as a fallback here, but for now, we'll proceed with local model.
+
+"""
+END TESTING CTRANSLATE2
+"""
 # Kokoro is the default TTS model
 tts_model = get_tts_model() 
 
@@ -55,11 +78,41 @@ def response(
     logger.info("🎙️ Received audio input")
 
     # 3. Local STT (No need to convert to bytes)
-    # fastrtc STT model accepts the (sample_rate, numpy_array) tuple directly
-    logger.debug("🔄 Transcribing audio locally...")
-    transcript = stt_model.stt(audio)
     
-    logger.info(f'👂 Transcribed: "{transcript}"')
+    """
+    TESTING CTRANSLATE2
+    """
+
+    #  START: LOCAL STT TRANSCRIPTION (Replacing Groq API) 
+    logger.debug(" Transcribing audio locally with Faster-Whisper...")
+    
+    # The incoming audio is (sample_rate, np.int16 array)
+    
+    # 1. Normalize and convert dtype: int16 to float32, normalized to [-1.0, 1.0]
+    audio_data = audio[1]
+    
+    # FIX: Use .squeeze() to ensure the array is 1D (e.g., remove the channel dimension if present)
+    audio_array_float32 = (audio_data.astype(np.float32) / 32768.0).squeeze()
+    
+    # 2. Transcribe the audio array
+    # faster-whisper returns a generator of segments
+    segments, _ = local_stt_model.transcribe(
+        audio_array_float32, 
+        language="en",          # Specify language for better performance
+        beam_size=5,            # Increase beam size for slightly better accuracy
+        vad_filter=True,        # Use built-in Voice Activity Detection for clean transcription
+    )
+    
+    # 3. Concatenate all segments into a single transcript string
+    transcript = " ".join([segment.text for segment in segments]).strip()
+    
+    # Handle case where transcription is empty or just noise (prevents LLM error)
+    if not transcript:
+        transcript = " " # Use a space or a default phrase
+
+    #  END: CTRANSLATE2 TEST
+    
+    logger.info(f' Transcribed: "{transcript}"')
 
     # 4. LLM Processing (Still using your Groq-based Agent)
     logger.debug("🧠 Running agent...")
@@ -121,8 +174,8 @@ if __name__ == "__main__":
         import uvicorn
         app = FastAPI()
         stream.mount(app)
-        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None)
-        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+        # Fix: Removed duplicate uvicorn.run call and redundant reload/workers args for simple execution
+        uvicorn.run(app, host="127.0.0.1", port=8000)
     elif args.fastphone:
         stream.fastphone()
     else:

@@ -27,4 +27,6 @@ dependencies = [
     "langchain-redis>=0.2.4",
     "ollama>=0.6.1",
     "langchain-ollama>=0.3.10",
+    "openai-whisper>=20250625",
+    "faster-whisper>=1.2.1",
 ]
