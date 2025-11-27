@@ -17,6 +17,7 @@ from fastapi import FastAPI, WebSocket, Request
 
 from groq import Groq
 from loguru import logger
+from openai import audio
 
 from process_groq_tts import process_groq_tts
 from company_support_agent import agent, agent_config
@@ -29,6 +30,11 @@ logger.add(
 )
 
 groq_client = Groq()
+
+# Use a pipeline as a high-level helper
+# from transformers import pipeline
+
+# stt_model = pipeline("automatic-speech-recognition", model="openai/whisper-small")
 
 tts_model = get_tts_model(model="kokoro")
 
@@ -57,6 +63,17 @@ def response(
         model="whisper-large-v3-turbo",
         response_format="text",
     )
+    
+
+    #TRANSFORMERS ATTEMPT
+    # Extract the NumPy array of audio data
+    # audio_data = audio[1] 
+    
+    # result = stt_model(audio_data)
+    
+    # # The pipeline output is usually a dict: {'text': 'The transcribed text.'}
+    # transcript = result["text"].strip()
+    
     logger.info(f'👂 Transcribed: "{transcript}"')
 
     logger.debug("🧠 Running agent...")
@@ -67,13 +84,8 @@ def response(
     logger.info(f'💬 Response: "{response_text}"')
 
     logger.debug("🔊 Generating speech...")
-    tts_response = groq_client.audio.speech.create(
-        model="playai-tts",
-        voice="Cheyenne-PlayAI",
-        response_format="wav",
-        input=response_text,
-    )
-    yield from process_groq_tts(tts_response)
+    for audio_chunk in tts_model.stream_tts_sync(response_text, options=options):
+        yield audio_chunk
 
 def startup():
     for chunk in tts_model.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
