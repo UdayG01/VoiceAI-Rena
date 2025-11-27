@@ -10,7 +10,7 @@ from fastrtc import (
     ReplyOnPause,
     Stream,
     get_tts_model,
-    get_stt_model,
+    # get_stt_model, # Commented out as we are using faster_whisper
     KokoroTTSOptions,
     SileroVadOptions,
     WebRTC
@@ -37,8 +37,7 @@ logger.add(
 #stt_model = get_stt_model() 
 
 """
-TESTING CTRANSLATE2
-
+TESTING CTRANSLATE2 (FASTER-WHISPER)
 """
 # Use 'base' or 'small' for best performance/accuracy balance on CPU.
 # Use compute_type='int8' for 4x speedup on CPU over vanilla Whisper.
@@ -79,10 +78,7 @@ def response(
     logger.info("🎙️ Received audio input")
 
     # 3. Local STT (No need to convert to bytes)
-    # fastrtc STT model accepts the (sample_rate, numpy_array) tuple directly
-    # logger.debug("🔄 Transcribing audio locally...")
-    # transcript = stt_model.stt(audio)
-
+    
     """
     TESTING CTRANSLATE2
     """
@@ -91,11 +87,12 @@ def response(
     logger.debug(" Transcribing audio locally with Faster-Whisper...")
     
     # The incoming audio is (sample_rate, np.int16 array)
-    # Faster-Whisper expects a normalized np.float32 array.
     
     # 1. Normalize and convert dtype: int16 to float32, normalized to [-1.0, 1.0]
     audio_data = audio[1]
-    audio_array_float32 = audio_data.astype(np.float32) / 32768.0
+    
+    # FIX: Use .squeeze() to ensure the array is 1D (e.g., remove the channel dimension if present)
+    audio_array_float32 = (audio_data.astype(np.float32) / 32768.0).squeeze()
     
     # 2. Transcribe the audio array
     # faster-whisper returns a generator of segments
@@ -177,8 +174,8 @@ if __name__ == "__main__":
         import uvicorn
         app = FastAPI()
         stream.mount(app)
-        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None)
-        uvicorn.run(app, host="127.0.0.1", port=8000, ssl_keyfile=None, ssl_certfile=None, reload=True, workers=1)
+        # Fix: Removed duplicate uvicorn.run call and redundant reload/workers args for simple execution
+        uvicorn.run(app, host="127.0.0.1", port=8000)
     elif args.fastphone:
         stream.fastphone()
     else:
