@@ -13,7 +13,8 @@ from fastrtc import (
     # get_stt_model, # Commented out as we are using faster_whisper
     KokoroTTSOptions,
     SileroVadOptions,
-    WebRTC
+    WebRTC,
+    audio_to_bytes
 )
 from fastapi import FastAPI
 
@@ -77,34 +78,34 @@ def response(
     """
     logger.info("🎙️ Received audio input")
 
-    # 3. Local STT (No need to convert to bytes)
-    
-    """
-    TESTING CTRANSLATE2
-    """
+    # Convert to bytes
+    audio_bytes = audio_to_bytes(audio)
 
-    #  START: LOCAL STT TRANSCRIPTION (Replacing Groq API) 
-    logger.debug(" Transcribing audio locally with Faster-Whisper...")
-    
-    # The incoming audio is (sample_rate, np.int16 array)
-    
-    # 1. Normalize and convert dtype: int16 to float32, normalized to [-1.0, 1.0]
-    audio_data = audio[1]
-    
-    # FIX: Use .squeeze() to ensure the array is 1D (e.g., remove the channel dimension if present)
-    audio_array_float32 = (audio_data.astype(np.float32) / 32768.0).squeeze()
-    
-    # 2. Transcribe the audio array
-    # faster-whisper returns a generator of segments
+    # Create temporary mp3 file
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+        tmp.write(audio_bytes)
+        temp_path = tmp.name
+
+    logger.debug(f"📁 Temp audio saved at: {temp_path}")
+
+    # Faster-whisper transcription
+    logger.debug("🔍 Transcribing audio locally with Faster-Whisper...")
     segments, _ = local_stt_model.transcribe(
-        audio_array_float32, 
-        language="en",          # Specify language for better performance
-        beam_size=5,            # Increase beam size for slightly better accuracy
-        vad_filter=True,        # Use built-in Voice Activity Detection for clean transcription
+        temp_path,
+        language="en",
+        beam_size=5,
+        vad_filter=True,
     )
-    
-    # 3. Concatenate all segments into a single transcript string
+
+    # Build transcript
     transcript = " ".join([segment.text for segment in segments]).strip()
+
+    logger.info(f'👂 Transcribed: "{transcript}"')
+
+    # Delete temp file
+    os.remove(temp_path)
+    logger.debug("🧹 Temp file removed.")
     
     # Handle case where transcription is empty or just noise (prevents LLM error)
     if not transcript:
