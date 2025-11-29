@@ -38,7 +38,7 @@ logger.add(
 #stt_model = get_stt_model() 
 
 """
-TESTING CTRANSLATE2 (FASTER-WHISPER)
+START LOADING CTRANSLATE2 (FASTER-WHISPER)
 """
 # Use 'base' or 'small' for best performance/accuracy balance on CPU.
 # Use compute_type='int8' for 4x speedup on CPU over vanilla Whisper.
@@ -58,7 +58,7 @@ except Exception as e:
     # Consider keeping groq_client call as a fallback here, but for now, we'll proceed with local model.
 
 """
-END TESTING CTRANSLATE2
+END LOADING CTRANSLATE2
 """
 # Kokoro is the default TTS model
 tts_model = get_tts_model() 
@@ -100,8 +100,6 @@ def response(
 
     # Build transcript
     transcript = " ".join([segment.text for segment in segments]).strip()
-
-    logger.info(f'👂 Transcribed: "{transcript}"')
 
     # Delete temp file
     os.remove(temp_path)
