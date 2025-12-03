@@ -72,11 +72,15 @@ options = KokoroTTSOptions(
 
 def response(
     audio: tuple[int, np.ndarray],
+    user_name: str = "",
+    user_email: str = ""
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     Process audio input locally, generate response via Groq/LangGraph, and deliver local TTS.
     """
     logger.info("🎙️ Received audio input")
+    if user_name or user_email:
+        logger.info(f"⌨️ Received context - Name: {user_name}, Email: {user_email}")
 
     # Convert to bytes
     audio_bytes = audio_to_bytes(audio)
@@ -112,14 +116,34 @@ def response(
     #  END: CTRANSLATE2 TEST
     
     logger.info(f' Transcribed: "{transcript}"')
+    
+    combined_input = transcript
+    if user_name or user_email:
+        context_str = f"(Context: Name: {user_name}, Email: {user_email})"
+        combined_input = f"{transcript} {context_str}"
 
     # 4. LLM Processing (Still using your Groq-based Agent)
     logger.debug("🧠 Running agent...")
     agent_response = agent.invoke(
-        {"messages": [{"role": "user", "content": transcript}]}, config=agent_config
+        {"messages": [{"role": "user", "content": combined_input}]}, config=agent_config
     )
     response_text = agent_response["messages"][-1].content
-    logger.info(f'💬 Response: "{response_text}"')
+    
+    # Clean text for TTS (remove markdown, special chars)
+    import re
+    def clean_text_for_tts(text: str) -> str:
+        # Remove bold/italic markers (** or *)
+        text = re.sub(r'\*\*|__', '', text)
+        text = re.sub(r'\*', '', text)
+        # Remove headers (#)
+        text = re.sub(r'#+', '', text)
+        # Remove list markers (1., -, etc.) but keep the content
+        text = re.sub(r'^\s*[\-\*]\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+        return text.strip()
+
+    response_text = clean_text_for_tts(response_text)
+    logger.info(f'💬 Response (Cleaned): "{response_text}"')
 
     # 5. Local TTS
     # stream_tts_sync yields audio chunks suitable for the stream
@@ -127,7 +151,7 @@ def response(
     for audio_chunk in tts_model.stream_tts_sync(response_text, options=options):
         yield audio_chunk
 
-def startup():
+def startup(*args):
     for chunk in tts_model.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
         yield chunk
 
@@ -148,6 +172,10 @@ def create_stream() -> Stream:
             ),
             startup_fn=startup
         ),
+        additional_inputs=[
+            gr.Textbox(label="Name", placeholder="Enter your name"),
+            gr.Textbox(label="Email", placeholder="Enter your email")
+        ],
         ui_args={"title": "Renata Support Bot"}
     )
 
