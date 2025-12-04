@@ -29,7 +29,7 @@ python src/main.py --fastphone
 ```
 
 ## First look
-https://github.com/user-attachments/assets/9738ad82-0b3f-4b4b-8892-3fa42542d6f8
+[Rena_Demo](https://github.com/user-attachments/assets/5e2037b3-f652-4910-ba17-abd73ea7d059)
 
 ## Remaining features
 1. Local deployment of
