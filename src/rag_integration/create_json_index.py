@@ -1,3 +1,11 @@
+"""
+VERSION: 15-12-2025 22:21pm
+
+In this edit I am trying to attach metadata to each chunk extracted from the JSON file.
+and then create a FAISS index that includes these metadata for better retrieval later on.
+
+"""
+
 import json
 import os
 import faiss
@@ -5,7 +13,7 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 from loguru import logger
-from typing import Any, List
+from typing import Any, List, Dict
 
 # ==============================
 # Configuration
@@ -13,16 +21,16 @@ from typing import Any, List
 COMPANY_DATA_FILE = "src/avaada_presentation.json"
 INDEX_FILE_PATH = "src/rag_integration/company_rag_index_2.bin"
 CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_2.npy"
+METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_2.npy"
 
 device = "cpu"
 torch.set_default_device(device)
 
 
 # ==============================
-# Utilities
+# Load JSON
 # ==============================
 def load_company_data() -> dict:
-    """Load structured company JSON data."""
     if not os.path.exists(COMPANY_DATA_FILE):
         raise FileNotFoundError(f"{COMPANY_DATA_FILE} not found")
 
@@ -30,81 +38,114 @@ def load_company_data() -> dict:
         return json.load(f)
 
 
-def extract_text_chunks(
+# ==============================
+# JSON → Chunks with Metadata
+# ==============================
+def extract_chunks_with_metadata(
     data: Any,
     path: str = "",
+    source: str = "",
     min_length: int = 30
-) -> List[str]:
+) -> List[Dict]:
     """
-    Recursively walk JSON and extract meaningful text chunks.
-
-    Rules:
-    - Strings become chunks
-    - Lists of strings are joined into readable sentences
-    - Dict structure is preserved via path prefix
+    Recursively extract text chunks and attach metadata.
     """
     chunks = []
+
+    def top_section(p: str) -> str:
+        return p.split(".")[0] if "." in p else p
 
     if isinstance(data, dict):
         for key, value in data.items():
             new_path = f"{path}.{key}" if path else key
-            chunks.extend(extract_text_chunks(value, new_path, min_length))
+            chunks.extend(
+                extract_chunks_with_metadata(value, new_path, source, min_length)
+            )
 
     elif isinstance(data, list):
         if all(isinstance(item, str) for item in data):
             joined = ", ".join(data)
             text = f"{path.replace('.', ' ')}: {joined}"
             if len(text) >= min_length:
-                chunks.append(text)
+                chunks.append({
+                    "text": text,
+                    "metadata": {
+                        "json_path": path,
+                        "top_section": top_section(path),
+                        "category": path.split(".")[-1],
+                        "chunk_type": "string_list",
+                        "source": source
+                    }
+                })
         else:
             for idx, item in enumerate(data):
                 new_path = f"{path}[{idx}]"
-                chunks.extend(extract_text_chunks(item, new_path, min_length))
+                chunks.extend(
+                    extract_chunks_with_metadata(item, new_path, source, min_length)
+                )
 
-    elif isinstance(data, str):
+    elif isinstance(data, (str, int, float, bool)):
         text = f"{path.replace('.', ' ')}: {data}"
         if len(text) >= min_length:
-            chunks.append(text)
+            chunks.append({
+                "text": text,
+                "metadata": {
+                    "json_path": path,
+                    "top_section": top_section(path),
+                    "category": path.split(".")[-1],
+                    "chunk_type": type(data).__name__,
+                    "source": source
+                }
+            })
+
 
     return chunks
 
 
-def json_to_corpus(data: dict) -> List[str]:
-    """Convert JSON directly into embedding-ready text chunks."""
-    logger.info("🔍 Extracting text chunks directly from JSON...")
-    chunks = extract_text_chunks(data)
-    logger.info(f"✅ Extracted {len(chunks)} text chunks from JSON")
+def json_to_chunks(data: dict) -> List[Dict]:
+    logger.info("🔍 Extracting chunks with metadata from JSON...")
+    chunks = extract_chunks_with_metadata(
+        data,
+        source=os.path.basename(COMPANY_DATA_FILE)
+    )
+    logger.info(f"✅ Extracted {len(chunks)} chunks")
     return chunks
 
 
 # ==============================
 # FAISS Index Creation
 # ==============================
-def create_faiss_index(corpus: List[str]):
+def create_faiss_index(chunks: List[Dict]):
+    texts = [c["text"] for c in chunks]
+    metadata = [c["metadata"] for c in chunks]
+
     logger.info("🧠 Loading embedding model...")
     embedder = SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
     logger.info("📐 Creating embeddings...")
     embeddings = embedder.encode(
-        corpus,
+        texts,
         convert_to_tensor=False,
         show_progress_bar=True
     )
 
     embeddings = np.asarray(embeddings, dtype=np.float32)
-    dimension = embeddings.shape[1]
+    dim = embeddings.shape[1]
 
     logger.info("📦 Building FAISS index...")
-    index = faiss.IndexFlatL2(dimension)
+    index = faiss.IndexFlatL2(dim)
     index.add(embeddings)
 
+    # Persist everything
     faiss.write_index(index, INDEX_FILE_PATH)
-    np.save(CORPUS_FILE_PATH, np.array(corpus, dtype=object))
+    np.save(CORPUS_FILE_PATH, np.array(texts, dtype=object))
+    np.save(METADATA_FILE_PATH, np.array(metadata, dtype=object))
 
-    logger.success("🚀 FAISS index successfully created")
-    logger.info(f"Index file: {INDEX_FILE_PATH}")
-    logger.info(f"Corpus file: {CORPUS_FILE_PATH}")
-    logger.info(f"Total chunks indexed: {len(corpus)}")
+    logger.success("🚀 RAG index created successfully")
+    logger.info(f"Index: {INDEX_FILE_PATH}")
+    logger.info(f"Corpus: {CORPUS_FILE_PATH}")
+    logger.info(f"Metadata: {METADATA_FILE_PATH}")
+    logger.info(f"Total chunks indexed: {len(texts)}")
 
 
 # ==============================
@@ -119,11 +160,11 @@ if __name__ == "__main__":
     )
 
     try:
-        logger.info("⏳ Loading company JSON...")
+        logger.info("⏳ Loading JSON data...")
         company_data = load_company_data()
 
-        corpus = json_to_corpus(company_data)
-        create_faiss_index(corpus)
+        chunks = json_to_chunks(company_data)
+        create_faiss_index(chunks)
 
     except Exception as e:
         logger.exception(f"❌ Failed to create RAG index: {e}")
