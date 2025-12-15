@@ -15,6 +15,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
+# from langchain.agents import create_agent
 from langchain.tools import tool
 from loguru import logger
 from dotenv import load_dotenv
@@ -35,8 +36,8 @@ logger.add(
 
 # --- 1. RAG Index Configuration & Loading ---
 # Using the absolute paths provided by the user
-INDEX_FILE_PATH = "src/rag_integration/company_rag_index.bin"
-CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks.npy"
+INDEX_FILE_PATH = "src/rag_integration/company_rag_index_2.bin"
+CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_2.npy"
 
 RAG_INDEX = None
 RAG_CORPUS = None
@@ -46,7 +47,7 @@ try:
     logger.info("⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)...")
     RAG_EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2', device=device) 
     RAG_INDEX = faiss.read_index(INDEX_FILE_PATH)
-    RAG_CORPUS = np.load(CORPUS_FILE_PATH)
+    RAG_CORPUS = np.load(CORPUS_FILE_PATH, allow_pickle=True)
     logger.info(f"✅ RAG components loaded. Index dimension: {RAG_INDEX.d}, Chunks: {len(RAG_CORPUS)}")
 except Exception as e:
     logger.error(f"❌ Error loading RAG components: {e}. The RAG search tool will not function.")
