@@ -17,6 +17,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 # from langchain.agents import create_agent
 from langchain.tools import tool
+from rank_bm25 import BM25Okapi
+
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -35,22 +37,41 @@ logger.add(
 
 
 # --- 1. RAG Index Configuration & Loading ---
-# Using the absolute paths provided by the user
+
 INDEX_FILE_PATH = "src/rag_integration/company_rag_index_2.bin"
 CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_2.npy"
+METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_2.npy"
 
 RAG_INDEX = None
 RAG_CORPUS = None
+RAG_METADATA = None
 RAG_EMBEDDER = None
+BM25_INDEX = None
+BM25_TOKENIZED_CORPUS = None
+
 try:
-    # 'all-MiniLM-L6-v2' is the model used in create_index.py
     logger.info("⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)...")
-    RAG_EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2', device=device) 
+
+    RAG_EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2', device=device)
     RAG_INDEX = faiss.read_index(INDEX_FILE_PATH)
     RAG_CORPUS = np.load(CORPUS_FILE_PATH, allow_pickle=True)
-    logger.info(f"✅ RAG components loaded. Index dimension: {RAG_INDEX.d}, Chunks: {len(RAG_CORPUS)}")
+    RAG_METADATA = np.load(METADATA_FILE_PATH, allow_pickle=True)
+
+
+    # --- NEW: BM25 setup ---
+    BM25_TOKENIZED_CORPUS = [
+        chunk.lower().split() for chunk in RAG_CORPUS
+    ]
+    BM25_INDEX = BM25Okapi(BM25_TOKENIZED_CORPUS)
+
+    logger.info(
+        f"✅ RAG loaded | Chunks: {len(RAG_CORPUS)} | "
+        f"Index dim: {RAG_INDEX.d}"
+    )
+
 except Exception as e:
-    logger.error(f"❌ Error loading RAG components: {e}. The RAG search tool will not function.")
+    logger.error(f"❌ Error loading RAG components: {e}")
+
 
 
 """
@@ -79,44 +100,92 @@ def load_company_data():
 COMPANY_DATA = load_company_data()
 
 
-# --- 2. RAG Search Tool (Replaces company_info) ---
+# --- 2. RAG Search Tool (Hybrid + Diversified) ---
 @tool
 def rag_search(query: str, k: int = 3) -> str:
     """
-    Retrieve the most relevant context from the company's knowledge base 
-    using a vector search (RAG). Use this tool for ALL factual company 
-    information inquiries (founder, mission, services, customers, history, etc.).
-
-    Args:
-        query: The user's question or the core topic to search for.
-        k (optional): The number of top relevant chunks to retrieve. Defaults to 3.
-
-    Returns:
-        A single string containing the retrieved context chunks, separated by '---',
-        or an error message if retrieval fails.
+    Hybrid RAG search using vector similarity + BM25 keyword matching,
+    with increased candidate retrieval (Fix 1) and section diversification (Fix 2).
     """
-    if RAG_INDEX is None or RAG_CORPUS is None or RAG_EMBEDDER is None:
-        return "ERROR: RAG system is currently unavailable or improperly loaded. Cannot search knowledge base."
-        
-    try:
-        # 1. Embed the user question
-        # Ensure encoding runs on the specified device
-        query_embedding = RAG_EMBEDDER.encode(query, convert_to_tensor=False, device=device).astype(np.float32)
-        query_embedding = query_embedding.reshape(1, -1) # Reshape for FAISS search
+    if (
+        RAG_INDEX is None
+        or RAG_CORPUS is None
+        or RAG_EMBEDDER is None
+        or BM25_INDEX is None
+        or RAG_METADATA is None
+    ):
+        return "ERROR: RAG system is currently unavailable."
 
-        # 2. Search the FAISS index for the top 'k' nearest neighbors
-        # D is the distance array, I is the index array (IDs of the chunks)
-        D, I = RAG_INDEX.search(query_embedding, k)
-        
-        # 3. Retrieve the actual text chunks (the context)
-        retrieved_chunks = [RAG_CORPUS[i] for i in I[0]]
-        
-        # 4. Concatenate and return the context string for the LLM
+    try:
+        # -----------------------
+        # 1. Embed the query
+        # -----------------------
+        query_embedding = RAG_EMBEDDER.encode(
+            query,
+            convert_to_tensor=False,
+            device=device
+        ).astype(np.float32).reshape(1, -1)
+
+        # -----------------------
+        # Fix 1: Retrieve MORE candidates than k
+        # -----------------------
+        initial_k = min(6, len(RAG_CORPUS))  # candidate pool
+        final_k = k                            # tool API remains unchanged
+
+        distances, vector_ids = RAG_INDEX.search(query_embedding, initial_k)
+
+        # Convert L2 distance → similarity
+        vector_scores = {
+            idx: 1.0 / (1.0 + dist)
+            for idx, dist in zip(vector_ids[0], distances[0])
+        }
+
+        # -----------------------
+        # 2. BM25 keyword search
+        # -----------------------
+        query_tokens = query.lower().split()
+        bm25_scores = BM25_INDEX.get_scores(query_tokens)
+
+        # -----------------------
+        # 3. Hybrid score fusion
+        # -----------------------
+        hybrid_scores = {}
+
+        for idx in range(len(RAG_CORPUS)):
+            vs = vector_scores.get(idx, 0.0)
+            bs = bm25_scores[idx]
+            hybrid_scores[idx] = (0.7 * vs) + (0.3 * bs)
+
+        # -----------------------
+        # Fix 2: Diversify by top_section metadata
+        # -----------------------
+        selected_indices = []
+        seen_sections = set()
+
+        for idx, score in sorted(
+            hybrid_scores.items(),
+            key=lambda x: x[1],
+            reverse=True
+        ):
+            section = RAG_METADATA[idx].get("top_section")
+
+            if section not in seen_sections:
+                selected_indices.append(idx)
+                seen_sections.add(section)
+
+            if len(selected_indices) >= final_k:
+                break
+
+        # -----------------------
+        # 5. Return context
+        # -----------------------
+        retrieved_chunks = [RAG_CORPUS[idx] for idx in selected_indices]
         return "---".join(retrieved_chunks)
 
     except Exception as e:
-        logger.error(f"RAG search failed: {e}") 
+        logger.error(f"Hybrid RAG search failed: {e}")
         return "ERROR: An error occurred during the knowledge base search."
+
 
 
 # --- 3. Complaint Handling Tools (Unchanged) ---
@@ -263,8 +332,8 @@ You are Rena, the AI Support Assistant for Renata.
 
 **User**: Who founded Renata?
 **Tool Call**: (Calls `rag_search` with arguments: {"query": "Who founded Renata?"})
-**Tool Output**: {"result": "Renata was founded by Anil Sagar in 2018."}
-**Assistant**: Renata was founded by Anil Sagar in 2018.
+**Tool Output**: {"result": "Renata was founded by Anil Sagar in 2019."}
+**Assistant**: Renata was founded by Anil Sagar in 2019.
 
 **User**: I'm facing an issue with the login.
 **Assistant**: I can help you with that. Could you please provide your name and email address so I can create a ticket?
