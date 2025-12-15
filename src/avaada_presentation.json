@@ -1,0 +1,307 @@
+{
+  "organization_overview": {
+    "company_name": "RenataAI",
+    "location": "Gurgaon, India",
+    "founder_background": {
+      "name": "Anil Sagar",
+      "prior_experience_years": 20,
+      "previous_domain": "Telecom",
+      "education": [
+        {
+          "degree": "Electrical Engineering",
+          "institution": "IIT Delhi",
+          "graduation_year": 1997
+        },
+        {
+          "degree": "MBA",
+          "institution": "IIM Calcutta",
+          "graduation_year": 1999
+        }
+      ]
+    },
+    "company_operational_history": {
+      "solution_development_started": "During COVID period",
+      "commercial_operations_duration_years": 4,
+      "current_team_size": 11
+    }
+  },
+
+  "solution_domains": {
+    "primary_verticals": [
+      "Production Area Solutions",
+      "Utilities and Maintenance Solutions",
+      "Quality and Safety Compliance Solutions",
+      "Process Automation Solutions"
+    ]
+  },
+
+  "production_area_capabilities": {
+    "machine_integration": {
+      "supported_machine_types": [
+        "Conventional machines",
+        "PLC-operated machines",
+        "CNC machines"
+      ],
+      "objectives": [
+        "Increase manpower productivity",
+        "Increase machine productivity",
+        "Optimize raw material usage"
+      ]
+    },
+    "product_traceability": {
+      "identifiers_supported": [
+        "QR codes",
+        "Barcodes"
+      ],
+      "data_correlated": [
+        "Production data",
+        "Quality data"
+      ],
+      "usage_scope": [
+        "Internal operations",
+        "Customer-facing traceability"
+      ]
+    },
+    "digital_twin_and_training": {
+      "solutions": [
+        "Digital twin implementations",
+        "Virtual reality-based operator training"
+      ],
+      "training_objective": "Enable safe operator training without using real machines"
+    }
+  },
+
+  "utilities_and_maintenance_capabilities": {
+    "monitoring_and_optimization": {
+      "resources_managed": [
+        "Energy",
+        "Water",
+        "Gases"
+      ],
+      "functions": [
+        "Remote monitoring",
+        "Resource optimization"
+      ]
+    },
+    "machine_health_monitoring": {
+      "monitored_assets": [
+        "Motors",
+        "Critical machines",
+        "Critical appliances"
+      ],
+      "sensor_types_used": [
+        "Vibration sensors",
+        "Load sensors",
+        "Temperature sensors"
+      ],
+      "maintenance_strategy": "Preventive maintenance with advance alerts"
+    },
+    "industrial_appliance_integration": {
+      "appliances_supported": [
+        "Compressors",
+        "UPS systems",
+        "Chillers"
+      ]
+    },
+    "sensor_deployments": {
+      "environmental_sensors": [
+        "Air quality (AQI)",
+        "Temperature",
+        "Humidity"
+      ],
+      "industrial_sensors": [
+        "Hydraulic pressure monitoring"
+      ]
+    }
+  },
+
+  "quality_and_safety_ai_capabilities": {
+    "quality_inspection": {
+      "methods": [
+        "Machine vision cameras",
+        "Vision AI"
+      ],
+      "inspection_functions": [
+        "Defect inspection",
+        "Product counting",
+        "Text reading",
+        "Barcode reading",
+        "Child part inspection",
+        "Product classification"
+      ]
+    },
+    "camera_based_ai_monitoring": {
+      "camera_sources": [
+        "CCTV cameras",
+        "Web cameras"
+      ],
+      "applications": [
+        "Factory activity monitoring",
+        "Safety compliance monitoring"
+      ]
+    },
+    "safety_use_cases": {
+      "detections_supported": [
+        "PPE detection",
+        "Restricted area detection",
+        "Vehicle safety monitoring",
+        "Fire detection",
+        "Smoke detection",
+        "Gas leakage detection",
+        "Fall detection",
+        "Crowd detection"
+      ]
+    },
+    "assembly_process_monitoring": {
+      "capabilities": [
+        "Step-by-step activity recognition",
+        "Detection of missed assembly steps",
+        "Real-time alerts via hooter or tower light"
+      ],
+      "data_recorded": [
+        "Timestamp",
+        "Operator identity",
+        "Station information"
+      ]
+    }
+  },
+
+  "process_automation_capabilities": {
+    "digital_sop_system": {
+      "display_setup": {
+        "screen_size_inches": 24,
+        "content_formats": [
+          "Video",
+          "Images",
+          "PDFs"
+        ],
+        "additional_content": [
+          "Safety instructions",
+          "Management communication",
+          "Machine parameters"
+        ]
+      },
+      "operational_features": [
+        "Centralized SOP control",
+        "Automatic SOP changeover during product change",
+        "On-the-job operator training"
+      ]
+    },
+    "digital_checklists_and_workflows": {
+      "operator_interaction": [
+        "Checklist entry via keyboard",
+        "Login-based access control"
+      ],
+      "data_integrity_controls": [
+        "Range validation",
+        "Value constraints"
+      ],
+      "approval_flow": [
+        "Supervisor inbox notification",
+        "Supervisor approval"
+      ],
+      "data_usage": [
+        "Analytics",
+        "Audits",
+        "SPC control"
+      ]
+    },
+    "plan_vs_actual_tracking": {
+      "display_modes": [
+        "Individual station display",
+        "Centralized big screen display"
+      ],
+      "data_sources": [
+        "Manual entry",
+        "Direct machine data collection"
+      ]
+    },
+    "rpa_and_mechanical_automation": {
+      "rpa_use_cases": [
+        "Invoice data extraction from PDFs",
+        "ERP system data entry",
+        "Inter-application data communication"
+      ],
+      "mechanical_automation_use_cases": [
+        "Robotics integration with CNC machines",
+        "CNC tool offset automation",
+        "Actuator deployment",
+        "Scanner deployment"
+      ]
+    }
+  },
+
+  "analytics_and_statistical_controls": {
+    "spc_and_quality_analysis": {
+      "features": [
+        "Control charts",
+        "Bell curves",
+        "Statistical analysis"
+      ],
+      "process_capability": {
+        "built_in_formulas": true,
+        "custom_formula_support": true
+      }
+    },
+    "outlier_and_root_cause_analysis": {
+      "data_sources_correlated": [
+        "IoT machine data",
+        "Machine parameters",
+        "Sensor data",
+        "AI inspection data"
+      ]
+    }
+  },
+
+  "customer_and_industry_presence": {
+    "industry_distribution": {
+      "automobile_industry_percentage": "60-70%"
+    },
+    "international_presence": [
+      "Japan",
+      "France",
+      "Italy",
+      "Germany"
+    ],
+    "other_industries_served": [
+      "Textiles",
+      "Walls",
+      "Door locks",
+      "Compressors",
+      "Injection molding",
+      "Chemicals",
+      "Steel wire ropes",
+      "Grease manufacturing"
+    ]
+  },
+
+  "reference_deployment_example": {
+    "customer": "SCC Clutch",
+    "customer_origin": "Japan",
+    "product_type": [
+      "Two-wheeler clutch plates",
+      "Upcoming four-wheeler clutch plates"
+    ],
+    "production_line_configuration": {
+      "number_of_stations": 14,
+      "station_characteristics": "Each station runs a distinct process with product-specific SOPs"
+    }
+  },
+
+  "organizational_structure": {
+    "roles": [
+      "Founder",
+      "Senior delivery leadership",
+      "Senior software development leadership",
+      "Installation engineers",
+      "Automation engineers",
+      "Software developers",
+      "AI developers"
+    ]
+  },
+
+  "support_and_continuity": {
+    "support_model": "Lean AI-driven team",
+    "customer_references_available": true
+  }
+}
