@@ -28,19 +28,62 @@ device = "cpu"
 # if you run into tensor/device issues, but usually not needed for loading.
 
 load_dotenv()
-logger.remove() # Remove default loguru configuration
+
+# Configure logging to markdown files
+import os
+from pathlib import Path
+
+# Create logs directory if it doesn't exist
+LOGS_DIR = Path("logs")
+LOGS_DIR.mkdir(exist_ok=True)
+
+# Generate timestamp for log filename
+from datetime import datetime
+log_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+LOG_FILE = LOGS_DIR / f"rag_session_{log_timestamp}.md"
+
+logger.remove()  # Remove default loguru configuration
+
+# Add file logger with markdown-friendly format (ALL details go here)
+logger.add(
+    LOG_FILE,
+    format="**{time:HH:mm:ss}** | `{level}` | {message}",
+    level="DEBUG",
+    mode="w",
+    encoding="utf-8"
+)
+
+# Add console logger (basic INFO like before, but exclude detailed tool logs)
 logger.add(
     lambda msg: print(msg),
     colorize=True,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>",
+    level="INFO",
+    filter=lambda record: "🔧" not in record["message"] and "🧠 Agent Input:" not in record["message"] and "🧠 Agent returned" not in record["message"] and "🧠 Raw Agent Response:" not in record["message"]
 )
+
+logger.info(f"📝 Session logs saved to: logs/{LOG_FILE.name}")
+
+# Write markdown header to log file
+with open(LOG_FILE, 'a', encoding='utf-8') as f:
+    f.write(f"""# RAG Voice Agent Session Log
+**Session Started:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
+**Log File:** `{LOG_FILE.name}`
+
+---
+
+## Session Activity
+
+""")
+
+logger.debug(f"Initialized RAG session log at {LOG_FILE}")
 
 
 # --- 1. RAG Index Configuration & Loading ---
 
-INDEX_FILE_PATH = "src/rag_integration/company_rag_index_2.bin"
-CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_2.npy"
-METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_2.npy"
+INDEX_FILE_PATH = "src/rag_integration/company_rag_index_3.bin"
+CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_3.npy"
+METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_3.npy"
 
 RAG_INDEX = None
 RAG_CORPUS = None
@@ -99,14 +142,96 @@ def load_company_data():
     
 COMPANY_DATA = load_company_data()
 
+# --- Global Context for Query Validation ---
+# This stores the original user query so rag_search can validate LLM reformulations
+_original_user_query = None
+
+
+def set_user_query(query: str):
+    """Store the original user query for validation."""
+    global _original_user_query
+    _original_user_query = query
+
+
+# --- Query Validation Helper (Option 2 Safeguard) ---
+def extract_keywords(query: str) -> list:
+    """
+    Extract important keywords from user query.
+    These are terms we don't want the LLM to lose during reformulation.
+    """
+    # Common stop words to ignore
+    stop_words = {
+        'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+        'can', 'may', 'might', 'must', 'about', 'tell', 'me', 'what', 'how', 'why',
+        'when', 'where', 'which', 'who', 'its', 'it', 'this', 'that', 'these', 'those'
+    }
+    
+    # Extract words, convert to lowercase, filter stop words
+    words = query.lower().split()
+    keywords = [w.strip('.,!?;:') for w in words if w.strip('.,!?;:') not in stop_words]
+    
+    # Keep meaningful terms (length > 2)
+    keywords = [k for k in keywords if len(k) > 2]
+    
+    return keywords
+
+
+def validate_rag_query(original_query: str, llm_query: str) -> str:
+    """
+    Validate that LLM didn't corrupt the query intent.
+    If key terms are lost, fall back to original query.
+    """
+    # Extract important keywords from original
+    key_terms = extract_keywords(original_query)
+    
+    # If original query is very short, just use it directly
+    if len(key_terms) <= 2:
+        logger.debug(f"🔍 Short query, using original: '{original_query}'")
+        return original_query
+    
+    # Check if LLM query preserved at least 50% of key terms
+    llm_lower = llm_query.lower()
+    preserved_count = sum(1 for term in key_terms if term in llm_lower)
+    preservation_rate = preserved_count / len(key_terms) if key_terms else 0
+    
+    if preservation_rate < 0.5:
+        logger.warning(
+            f"🔍 Query validation FAILED: {preservation_rate:.0%} keywords preserved\n"
+            f"   Original: '{original_query}' (keywords: {key_terms})\n"
+            f"   LLM reformulated: '{llm_query}'\n"
+            f"   → Falling back to ORIGINAL query"
+        )
+        return original_query
+    else:
+        logger.debug(
+            f"🔍 Query validation PASSED: {preservation_rate:.0%} keywords preserved\n"
+            f"   Original: '{original_query}'\n"
+            f"   LLM reformulated: '{llm_query}' ✓"
+        )
+        return llm_query
+
 
 # --- 2. RAG Search Tool (Hybrid + Diversified) ---
 @tool
-def rag_search(query: str, k: int = 3) -> str:
+def rag_search(query: str, k: int = 5) -> str:
     """
     Hybrid RAG search using vector similarity + BM25 keyword matching,
     with increased candidate retrieval (Fix 1) and section diversification (Fix 2).
     """
+    global _original_user_query
+    
+    # Validate query against original user input if available
+    if _original_user_query:
+        validated_query = validate_rag_query(_original_user_query, query)
+        if validated_query != query:
+            logger.info(f"🔧 TOOL CALL: rag_search(query='{query}' → CORRECTED to '{validated_query}', k={k})")
+            query = validated_query
+        else:
+            logger.info(f"🔧 TOOL CALL: rag_search(query='{query}' ✓ validated, k={k})")
+    else:
+        logger.info(f"🔧 TOOL CALL: rag_search(query='{query}', k={k})")
+    
     if (
         RAG_INDEX is None
         or RAG_CORPUS is None
@@ -114,7 +239,9 @@ def rag_search(query: str, k: int = 3) -> str:
         or BM25_INDEX is None
         or RAG_METADATA is None
     ):
-        return "ERROR: RAG system is currently unavailable."
+        error_msg = "ERROR: RAG system is currently unavailable."
+        logger.error(f"🔧 TOOL RESULT: {error_msg}")
+        return error_msg
 
     try:
         # -----------------------
@@ -129,8 +256,8 @@ def rag_search(query: str, k: int = 3) -> str:
         # -----------------------
         # Fix 1: Retrieve MORE candidates than k
         # -----------------------
-        initial_k = min(6, len(RAG_CORPUS))  # candidate pool
-        final_k = k                            # tool API remains unchanged
+        initial_k = min(10, len(RAG_CORPUS))  # Increased candidate pool
+        final_k = k                             # tool API remains unchanged
 
         distances, vector_ids = RAG_INDEX.search(query_embedding, initial_k)
 
@@ -154,7 +281,8 @@ def rag_search(query: str, k: int = 3) -> str:
         for idx in range(len(RAG_CORPUS)):
             vs = vector_scores.get(idx, 0.0)
             bs = bm25_scores[idx]
-            hybrid_scores[idx] = (0.7 * vs) + (0.3 * bs)
+            # Adjusted weights: more BM25 for structured data
+            hybrid_scores[idx] = (0.6 * vs) + (0.4 * bs)
 
         # -----------------------
         # Fix 2: Diversify by top_section metadata
@@ -180,11 +308,20 @@ def rag_search(query: str, k: int = 3) -> str:
         # 5. Return context
         # -----------------------
         retrieved_chunks = [RAG_CORPUS[idx] for idx in selected_indices]
-        return "---".join(retrieved_chunks)
+        result = "---".join(retrieved_chunks)
+        
+        # Log detailed retrieval info
+        retrieved_sections = [RAG_METADATA[idx].get("top_section", "unknown") for idx in selected_indices]
+        logger.info(f"🔧 TOOL RESULT: Retrieved {len(retrieved_chunks)} chunks from sections: {retrieved_sections}")
+        logger.debug(f"🔧 Retrieved chunks: {retrieved_chunks}")
+        
+        return result
 
     except Exception as e:
-        logger.error(f"Hybrid RAG search failed: {e}")
-        return "ERROR: An error occurred during the knowledge base search."
+        error_msg = f"ERROR: An error occurred during the knowledge base search: {str(e)}"
+        logger.error(f"🔧 TOOL ERROR: Hybrid RAG search failed: {e}")
+        logger.exception(e)
+        return error_msg
 
 
 
@@ -237,6 +374,7 @@ def register_complaint(name: str, email: str, issue: str, phone: str = "98765432
     Returns:
         A structured dict with ticket details.
     """
+    logger.info(f"🔧 TOOL CALL: register_complaint(name='{name}', email='{email}', issue='{issue}', phone='{phone}', company='{company}')")
 
     ticket_id = "TKT-" + uuid.uuid4().hex[:8].upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -279,12 +417,17 @@ Renata Support Team
     # Send confirmation email
     send_email(email, f"Complaint Registered - {ticket_id}", email_body)
 
-    return {
+    result = {
         "message": "Complaint submitted and confirmation email sent.",
         "ticket_id": ticket_id,
         "recorded_issue": issue,
         "contact": email
     }
+    
+    logger.info(f"🔧 TOOL RESULT: Complaint registered - Ticket ID: {ticket_id}")
+    logger.debug(f"🔧 Full result: {result}")
+    
+    return result
 
 
 """Tool List and System Prompt Update"""
@@ -328,6 +471,21 @@ You are Rena, the AI Support Assistant for Renata.
    - **Factual**: Use `rag_search` for facts. Do not hallucinate.
    - **Helpful**: Guide the user through the complaint process if needed.
 
+3a. **STRICT GROUNDING RULES** - CRITICAL:
+   - ONLY state information that is EXPLICITLY in the tool results
+   - DO NOT elaborate, explain, or add technical details beyond what's provided
+   - If the retrieved data is a simple list, provide ONLY that list - do not explain how each item works
+   - DO NOT infer processes, mechanisms, or implementation details
+   - If you don't have specific information, say so - don't fill gaps with plausible-sounding content
+   - When listing items, use EXACT wording from the source whenever possible
+   - Example: If source says "Robotics integration with CNC machines", say exactly that - do NOT add "by fitting robotic arms and syncing tool-paths..."
+
+4. **IMPORTANT DISTINCTIONS**:
+   - RenataAI (the company) is located in Gurgaon, India
+   - RenataAI serves international customers in Japan, France, Italy, Germany
+   - When discussing "presence," clarify if referring to company headquarters or customer locations
+   - Always cite specific client examples when available (e.g., FCC Clutch from Japan)
+
 ### FEW-SHOT EXAMPLES
 
 **User**: Who founded Renata?
@@ -342,6 +500,11 @@ You are Rena, the AI Support Assistant for Renata.
 **Tool Call**: (Calls `register_complaint` with arguments: {"name": "Alex", "email": "alex@test.com", "issue": "Login page gives 404 error"})
 **Tool Output**: {"ticket_id": "TKT-999", "message": "Complaint registered."}
 **Assistant**: I have successfully registered your complaint. Your ticket ID is TKT-999. A support specialist will reach out to you shortly. Thank you for contacting Renata Support.
+
+**User**: What are the mechanical automation use cases?
+**Tool Call**: (Calls `rag_search` with arguments: {"query": "mechanical automation use cases"})
+**Tool Output**: {"result": "SOLUTIONS - mechanical automation use cases: Robotics integration with CNC machines, CNC tool offset automation, Actuator deployment, Scanner deployment"}
+**Assistant**: Renata's mechanical automation use cases include robotics integration with CNC machines, CNC tool offset automation, actuator deployment, and scanner deployment.
 
 **User**: Hello.
 **Assistant**: Hello! I am Rena, Renata's support assistant. How can I help you today?
@@ -359,18 +522,18 @@ tools = [rag_search, register_complaint]
 #     max_tokens=256,
 # )
 
-# model = ChatOpenAI(
-#   api_key=os.getenv("OPENROUTER_API_KEY"),
-#   base_url="https://openrouter.ai/api/v1",
-#   model="x-ai/grok-4.1-fast:free",
-#   max_tokens=256
-# )
-
-model = ChatOllama(
-    model="qwen3:1.7b",
-    temperature=0,
-    max_tokens=128,
+model = ChatOpenAI(
+  api_key=os.getenv("OPENROUTER_API_KEY"),
+  base_url="https://openrouter.ai/api/v1",
+  model="openai/gpt-oss-20b:free",
+  max_tokens=180  # Reduced to encourage brevity and reduce elaboration
 )
+
+# model = ChatOllama(
+#     model="qwen3:1.7b",
+#     temperature=0,
+#     max_tokens=128,
+# )
 memory = InMemorySaver()
 
 agent = create_react_agent(
