@@ -26,12 +26,8 @@ from company_support_agent import agent, agent_config
 
 # from process_groq_tts import process_groq_tts 
 
-logger.remove()
-logger.add(
-    lambda msg: print(msg),
-    colorize=True,
-    format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>",
-)
+# Note: Logger is configured in company_support_agent.py
+# We import the configured logger, so no need to reconfigure here
 
 # 2. Initialize the Local Models (Global scope to load weights once)
 # Moonshine is the default STT model in FastRTC
@@ -40,10 +36,10 @@ logger.add(
 """
 START LOADING CTRANSLATE2 (FASTER-WHISPER)
 """
-# Use 'base' or 'small' for best performance/accuracy balance on CPU.
+
 # Use compute_type='int8' for 4x speedup on CPU over vanilla Whisper.
 from faster_whisper import WhisperModel
-WHISPER_MODEL_SIZE = "small"
+WHISPER_MODEL_SIZE = "medium"
 WHISPER_DEVICE = "cpu"
 try:
     logger.info(f"⏳ Loading local STT model ({WHISPER_MODEL_SIZE} on {WHISPER_DEVICE})...")
@@ -91,13 +87,12 @@ def response(
         tmp.write(audio_bytes)
         temp_path = tmp.name
 
-    logger.debug(f"📁 Temp audio saved at: {temp_path}")
-
     # Faster-whisper transcription
     logger.debug("🔍 Transcribing audio locally with Faster-Whisper...")
     segments, _ = local_stt_model.transcribe(
         temp_path,
         language="en",
+        # language="hi",
         beam_size=5,
         vad_filter=True,
     )
@@ -107,7 +102,6 @@ def response(
 
     # Delete temp file
     os.remove(temp_path)
-    logger.debug("🧹 Temp file removed.")
     
     # Handle case where transcription is empty or just noise (prevents LLM error)
     if not transcript:
@@ -115,7 +109,7 @@ def response(
 
     #  END: CTRANSLATE2 TEST
     
-    logger.info(f' Transcribed: "{transcript}"')
+    logger.info(f'📝 Transcribed: "{transcript}"')
     
     combined_input = transcript
     if user_name or user_email:
@@ -124,10 +118,31 @@ def response(
 
     # 4. LLM Processing (Still using your Groq-based Agent)
     logger.debug("🧠 Running agent...")
+    logger.debug(f"🧠 Agent Input: {combined_input}")
+    
+    # Store original query for validation 
+    from company_support_agent import set_user_query
+    set_user_query(transcript)  
+    
     agent_response = agent.invoke(
         {"messages": [{"role": "user", "content": combined_input}]}, config=agent_config
     )
+    
+    # Log agent response details
+    logger.debug(f"🧠 Agent returned {len(agent_response['messages'])} messages")
+    
+    # Extract and log tool usage
+    for i, msg in enumerate(agent_response['messages']):
+        if hasattr(msg, 'type'):
+            if msg.type == 'ai' and hasattr(msg, 'tool_calls') and msg.tool_calls:
+                logger.info(f"🤖 Agent made {len(msg.tool_calls)} tool call(s)")
+                for tc in msg.tool_calls:
+                    logger.debug(f"   - Tool: {tc.get('name', 'unknown')}, Args: {tc.get('args', {})}")
+            elif msg.type == 'tool':
+                logger.debug(f"   - Tool response: {msg.content[:200]}...")  # First 200 chars
+    
     response_text = agent_response["messages"][-1].content
+    logger.debug(f"🧠 Raw Agent Response: {response_text}")
     
     # Clean text for TTS (remove markdown, special chars)
     import re
