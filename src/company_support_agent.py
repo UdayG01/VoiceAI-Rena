@@ -526,7 +526,7 @@ model = ChatOpenAI(
   api_key=os.getenv("OPENROUTER_API_KEY"),
   base_url="https://openrouter.ai/api/v1",
   model="openai/gpt-oss-20b:free",
-  max_tokens=180  # Reduced to encourage brevity and reduce elaboration
+  max_tokens=180  
 )
 
 # model = ChatOllama(
