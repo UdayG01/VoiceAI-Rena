@@ -1,0 +1,15 @@
+faster-whisper
+langchain-ollama
+reportlab
+loguru
+watchdog
+flask
+pyaudio
+flask-cors
+pyaudio
+numpy
+flask-cors
+sounddevice
+numpy
+keyboard
+pillow
