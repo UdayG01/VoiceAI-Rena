@@ -29,5 +29,11 @@ dependencies = [
     "langchain-ollama>=0.3.10",
     "openai-whisper>=20250625",
     "faster-whisper>=1.2.1",
-    "rank-bm25>=0.2.2"
+    "rank-bm25>=0.2.2",
+    "snac>=1.2.1",
+    "transformers>=4.57.1",
+    "torch>=2.9.1",
+    "bitsandbytes>=0.49.0",
+    "accelerate>=1.12.0",
+    "hf-xet>=1.2.0",
 ]

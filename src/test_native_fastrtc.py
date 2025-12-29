@@ -61,7 +61,7 @@ tts_model = get_tts_model()
 
 # Configure TTS Voice/Speed
 options = KokoroTTSOptions(
-    voice="af_heart", # specific to Kokoro
+    voice="hf_alpha", # specific to Kokoro
     speed=1.0,
     lang="en-us"
 )
@@ -89,13 +89,14 @@ def response(
 
     # Faster-whisper transcription
     logger.debug("🔍 Transcribing audio locally with Faster-Whisper...")
-    segments, _ = local_stt_model.transcribe(
+    segments, info = local_stt_model.transcribe(
         temp_path,
-        language="en",
-        # language="hi",
         beam_size=5,
         vad_filter=True,
     )
+    
+    detected_lang = info.language
+    logger.info(f"🌐 Detected language: {detected_lang} (Prob: {info.language_probability:.2f})")
 
     # Build transcript
     transcript = " ".join([segment.text for segment in segments]).strip()
@@ -111,10 +112,16 @@ def response(
     
     logger.info(f'📝 Transcribed: "{transcript}"')
     
-    combined_input = transcript
+    # Force language instruction if Hindi is detected to guide the smaller LLM
+    lang_instruction = ""
+    if detected_lang == "hi":
+        lang_instruction = " (IMPORTANT: Reply in Hindi)"
+    
+    combined_input = f"{transcript}{lang_instruction}"
+
     if user_name or user_email:
-        context_str = f"(Context: Name: {user_name}, Email: {user_email})"
-        combined_input = f"{transcript} {context_str}"
+        context_str = f" (Context: Name: {user_name}, Email: {user_email})"
+        combined_input = f"{combined_input}{context_str}"
 
     # 4. LLM Processing (Still using your Groq-based Agent)
     logger.debug("🧠 Running agent...")
@@ -162,12 +169,22 @@ def response(
 
     # 5. Local TTS
     # stream_tts_sync yields audio chunks suitable for the stream
-    logger.debug("🔊 Generating speech locally...")
-    for audio_chunk in tts_model.stream_tts_sync(response_text, options=options):
+    # 5. Local TTS with Dynamic Language
+    # Use 'hi' for Hindi, default to 'en-us' for others
+    tts_lang = "hi" if detected_lang == "hi" else "en-us"
+    
+    dynamic_options = KokoroTTSOptions(
+        voice=options.voice,
+        speed=options.speed,
+        lang=tts_lang
+    )
+
+    logger.debug(f"🔊 Generating speech locally (Lang: {tts_lang})...")
+    for audio_chunk in tts_model.stream_tts_sync(response_text, options=dynamic_options):
         yield audio_chunk
 
 def startup(*args):
-    for chunk in tts_model.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?"):
+    for chunk in tts_model.stream_tts_sync("Hi!, I'm Rena, Renata's support assistant. How can I help you today?", options=options):
         yield chunk
 
 def create_stream() -> Stream:
@@ -199,12 +216,41 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
     parser.add_argument("--fastphone", action="store_true")
+    parser.add_argument("--remote", action="store_true")
+
     args = parser.parse_args()
 
     stream = create_stream()
     logger.info("🎧 Stream handler configured")
 
-    if args.phone:
+    if args.remote:
+        logger.info("🌍 Launching REMOTE voice endpoint (ngrok + FastAPI)...")
+
+        from pyngrok import ngrok
+        from fastapi import FastAPI
+        import uvicorn
+
+        # Ensure token is set
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+
+        # Create app
+        app = FastAPI()
+        stream.mount(app)
+
+        app = gr.mount_gradio_app(
+            app,
+            stream.ui,
+            path="/"
+        )
+
+        # Start tunnel FIRST
+        public_url = ngrok.connect(8000, "http")
+        logger.success(f"🔗 Public Voice Endpoint: {public_url}")
+
+        # bind to 0.0.0.0
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+        
+    elif args.phone:
         logger.info("📞 Launching with phone interface...")
 
         # Start ngrok tunnel

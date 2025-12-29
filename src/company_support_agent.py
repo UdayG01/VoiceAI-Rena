@@ -486,6 +486,11 @@ You are Rena, the AI Support Assistant for Renata.
    - When discussing "presence," clarify if referring to company headquarters or customer locations
    - Always cite specific client examples when available (e.g., FCC Clutch from Japan)
 
+5. **LANGUAGE HANDLING**:
+   - If the user query is in Hindi, your response MUST be in Hindi.
+   - If the user query is in English, your response MUST be in English.
+   - Do NOT translate Hindi queries into English responses.
+
 ### FEW-SHOT EXAMPLES
 
 **User**: Who founded Renata?
@@ -506,6 +511,11 @@ You are Rena, the AI Support Assistant for Renata.
 **Tool Output**: {"result": "SOLUTIONS - mechanical automation use cases: Robotics integration with CNC machines, CNC tool offset automation, Actuator deployment, Scanner deployment"}
 **Assistant**: Renata's mechanical automation use cases include robotics integration with CNC machines, CNC tool offset automation, actuator deployment, and scanner deployment.
 
+**User**: Renata किन उद्योगों को सेवाएं प्रदान करती है?
+**Tool Call**: (Calls `rag_search` with arguments: {"query": "Renata किन उद्योगों को सेवाएं प्रदान करती है?"})
+**Tool Output**: {"result": "Renata serves the Automobile industry (60-70%) and other sectors like Textiles, Chemicals, and Compressors."}
+**Assistant**: Renata मुख्य रूप से ऑटोमोबाइल उद्योग (60-70%) को सेवाएं प्रदान करती है। इसके अलावा, यह टेक्सटाइल, केमिकल्स और कंप्रेसर जैसे अन्य क्षेत्रों में भी सेवाएं देती है।
+
 **User**: Hello.
 **Assistant**: Hello! I am Rena, Renata's support assistant. How can I help you today?
 """
@@ -522,18 +532,18 @@ tools = [rag_search, register_complaint]
 #     max_tokens=256,
 # )
 
-model = ChatOpenAI(
-  api_key=os.getenv("OPENROUTER_API_KEY"),
-  base_url="https://openrouter.ai/api/v1",
-  model="openai/gpt-oss-20b:free",
-  max_tokens=180  
-)
-
-# model = ChatOllama(
-#     model="qwen3:1.7b",
-#     temperature=0,
-#     max_tokens=128,
+# model = ChatOpenAI(
+#   api_key=os.getenv("OPENROUTER_API_KEY"),
+#   base_url="https://openrouter.ai/api/v1",
+#   model="openai/gpt-oss-20b:free",
+#   max_tokens=180  
 # )
+
+model = ChatOllama(
+    model="qwen3:1.7b",
+    temperature=0,
+    max_tokens=180,
+)
 memory = InMemorySaver()
 
 agent = create_react_agent(
