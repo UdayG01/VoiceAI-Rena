@@ -49,10 +49,11 @@ dependencies = [
 # --------------------------------------------------
 [project.optional-dependencies]
 cuda = [
-    "torch==2.5.1+cu128",
-    "torchvision==0.20.1+cu128",
-    "torchaudio==2.5.1+cu128",
+    "torch==2.9.1+cu128",
+    "torchvision==0.24.1+cu128",
+    "torchaudio==2.9.1+cu128",
 ]
+
 
 # --------------------------------------------------
 # CUDA 12.8 PyTorch index (ONLY for cuda extra)
