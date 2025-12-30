@@ -345,12 +345,40 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RenataAI Voice Agent - Veena TTS Version")
     parser.add_argument("--phone", action="store_true")
     parser.add_argument("--fastphone", action="store_true")
+    parser.add_argument("--remote", action="store_true")
     args = parser.parse_args()
 
     stream = create_stream()
     logger.info("🎧 Stream handler configured")
 
-    if args.phone:
+    if args.remote:
+        logger.info("🌍 Launching REMOTE voice endpoint (ngrok + FastAPI)...")
+
+        from pyngrok import ngrok
+        from fastapi import FastAPI
+        import uvicorn
+
+        # Ensure token is set
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+
+        # Create app
+        app = FastAPI()
+        stream.mount(app)
+
+        app = gr.mount_gradio_app(
+            app,
+            stream.ui,
+            path="/"
+        )
+
+        # Start tunnel FIRST
+        public_url = ngrok.connect(8000, "http")
+        logger.success(f"🔗 Public Voice Endpoint: {public_url}")
+
+        # bind to 0.0.0.0
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+        
+    elif args.phone:
         logger.info("📞 Launching with phone interface...")
 
         # Start ngrok tunnel
