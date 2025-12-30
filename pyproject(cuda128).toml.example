@@ -34,10 +34,10 @@ dependencies = [
     "snac>=1.2.1",
     "transformers>=4.57.1",
 
-    # 🔥 PyTorch CUDA 12.8 (MUST be pinned)
-    "torch==2.5.1+cu128",
-    "torchvision==0.20.1+cu128",
-    "torchaudio==2.5.1+cu128",
+    # ✅ CPU defaults (PyPI)
+    "torch>=2.5.1",
+    "torchvision>=0.20.1",
+    "torchaudio>=2.5.1",
 
     "bitsandbytes>=0.49.0",
     "accelerate>=1.12.0",
@@ -45,7 +45,17 @@ dependencies = [
 ]
 
 # --------------------------------------------------
-# CUDA 12.8 PyTorch index (explicit, scoped)
+# Optional CUDA extra
+# --------------------------------------------------
+[project.optional-dependencies]
+cuda = [
+    "torch==2.5.1+cu128",
+    "torchvision==0.20.1+cu128",
+    "torchaudio==2.5.1+cu128",
+]
+
+# --------------------------------------------------
+# CUDA 12.8 PyTorch index (ONLY for cuda extra)
 # --------------------------------------------------
 [[tool.uv.index]]
 name = "pytorch-cu128"
@@ -53,9 +63,9 @@ url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 # --------------------------------------------------
-# Force torch packages to resolve ONLY from CUDA index
+# Bind CUDA wheels to the CUDA extra ONLY
 # --------------------------------------------------
 [tool.uv.sources]
-torch = { index = "pytorch-cu128" }
-torchvision = { index = "pytorch-cu128" }
-torchaudio = { index = "pytorch-cu128" }
+torch = { index = "pytorch-cu128", extra = "cuda" }
+torchvision = { index = "pytorch-cu128", extra = "cuda" }
+torchaudio = { index = "pytorch-cu128", extra = "cuda" }
