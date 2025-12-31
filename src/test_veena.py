@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from typing import Generator, Tuple
 from contextlib import asynccontextmanager
-
+import gradio as gr
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from snac import SNAC
@@ -84,20 +84,13 @@ except Exception as e:
     logger.error(f"❌ Failed to load Whisper on GPU: {e}")
     raise e
 
-# 2. Load Veena (TTS) with 4-bit Quantization
-logger.info("⏳ Loading Veena TTS models...")
+# 2. Load Veena (TTS) in BFloat16 for speed (since we have 16GB VRAM)
+logger.info("⏳ Loading Veena TTS models in BFloat16...")
 try:
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16, # Optimized for RTX 30/40/50 series
-        bnb_4bit_use_double_quant=True,
-    )
-    
     # device_map="auto" usually finds the GPU, but we verify later
     veena_model = AutoModelForCausalLM.from_pretrained(
         "maya-research/veena-tts",
-        quantization_config=quantization_config,
+        torch_dtype=torch.bfloat16, # Much faster than 4-bit if VRAM allows
         device_map={"": torch.cuda.current_device()}, 
         trust_remote_code=True,
     )
@@ -108,7 +101,7 @@ try:
 
     # 3. Load SNAC (Audio Decoder)
     snac_model = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().cuda()
-    logger.success("✅ Veena & SNAC loaded successfully on GPU.")
+    logger.success("✅ Veena & SNAC loaded successfully on GPU (BFloat16).")
 
 except Exception as e:
     logger.error(f"❌ Failed to load TTS models: {e}")
@@ -118,7 +111,7 @@ except Exception as e:
 # CORE FUNCTIONS
 # ==========================================
 
-def decode_snac_tokens(snac_tokens, snac_model):
+def decode_snac_tokens(snac_tokens, snac_model, silent=False):
     """De-interleave and decode SNAC tokens to audio"""
     if not snac_tokens:
         return None
@@ -126,11 +119,13 @@ def decode_snac_tokens(snac_tokens, snac_model):
     # FIX: Ensure tokens are divisible by 7 (discard incomplete frames)
     remainder = len(snac_tokens) % 7
     if remainder != 0:
-        logger.warning(f"⚠️ Trimming {remainder} incomplete tokens from audio stream.")
+        if not silent:
+            logger.warning(f"⚠️ Trimming {remainder} incomplete tokens from audio stream.")
         snac_tokens = snac_tokens[:-remainder]
     
     if not snac_tokens:
-        logger.warning("⚠️ No valid audio tokens remained after trimming.")
+        if not silent:
+            logger.warning("⚠️ No valid audio tokens remained after trimming.")
         return None
 
     snac_device = next(snac_model.parameters()).device
@@ -158,10 +153,13 @@ def decode_snac_tokens(snac_tokens, snac_model):
 
     return audio_hat.squeeze().clamp(-1, 1).cpu().numpy()
 
+    return audio_hat.squeeze().clamp(-1, 1).cpu().numpy()
+
 def generate_speech(text, speaker=SPEAKER_NAME, temperature=0.1):
-    """Generate speech with timing logs"""
+    """Generate speech (Blocking/Batch Mode)"""
     t0 = time.time()
     
+    # Ensure speaker prompt is consistent
     prompt = f"<spk_{speaker}> {text}"
     prompt_tokens = veena_tokenizer.encode(prompt, add_special_tokens=False)
 
@@ -175,20 +173,20 @@ def generate_speech(text, speaker=SPEAKER_NAME, temperature=0.1):
 
     input_ids = torch.tensor([input_tokens], device=veena_model.device)
     
-    # Calculate sensible max tokens
-    # Approx 7 audio tokens per text char is a safe upper bound for Veena
-    max_tokens = min(int(len(text) * 1.5) * 7 + 50, 800) 
+    # Approx 7 audio tokens per text char
+    # Increased max buffer slightly to prevent truncation
+    max_tokens = min(int(len(text) * 1.5) * 7 + 100, 1024) 
 
-    logger.debug(f"🏃 Starting Veena Generation (Input len: {len(text)} chars)...")
+    logger.debug(f"🏃 Starting Veena Generation (Input len: {len(text)} chars, Speaker: {speaker})...")
     
     with torch.no_grad():
         output = veena_model.generate(
             input_ids,
             max_new_tokens=max_tokens,
-            do_sample=True,
-            temperature=temperature,
-            top_p=0.9,
-            repetition_penalty=1.1, # Slight penalty to prevent loops
+            do_sample=False, # CHANGED: Greedy Decoding for speed
+            temperature=None, # Temperature is not used in greedy
+            top_p=None,      # Top-P is not used in greedy
+            repetition_penalty=1.0, # Disable penalty to speed up (model is usually stable enough)
             pad_token_id=veena_tokenizer.pad_token_id,
             eos_token_id=[END_OF_SPEECH_TOKEN, END_OF_AI_TOKEN]
         )
@@ -206,7 +204,6 @@ def generate_speech(text, speaker=SPEAKER_NAME, temperature=0.1):
 
     if not snac_tokens:
         logger.warning(f"⚠️ Generation finished but NO audio tokens found. Raw output length: {len(generated_ids)}")
-        # If the model output text instead of audio, we might see it here:
         decoded_text = veena_tokenizer.decode(generated_ids, skip_special_tokens=True)
         logger.debug(f"   Model Hallucination Check: {decoded_text}")
         return None
@@ -275,24 +272,26 @@ def response(
         logger.error(f"Agent Error: {e}")
         raw_text = "I encountered a system error."
 
-    # 3. TTS Generation (GPU)
+    # 3. TTS Generation (GPU) - BLOCKING
     clean_text = clean_text_for_tts(raw_text)
     logger.info(f'🤖 Bot: "{clean_text}"')
 
     try:
-        audio_array = generate_speech(clean_text)
+        # Generate full audio at once
+        audio_array = generate_speech(clean_text, speaker=SPEAKER_NAME)
         if audio_array is not None:
             yield (SAMPLE_RATE, audio_array)
         else:
             logger.warning("TTS returned None (Silence).")
+            
     except Exception as e:
         logger.error(f"TTS Generation Error: {e}")
 
 def startup(*args):
     logger.info("🔊 Generating Startup Greeting...")
     try:
-        # Pre-warm the model
-        audio = generate_speech("Hi! I am Rena. How can I help you?")
+        # Generate full startup audio
+        audio = generate_speech("Hi! I am Rena. How can I help you?", speaker=SPEAKER_NAME)
         if audio is not None:
             yield (SAMPLE_RATE, audio)
     except Exception as e:
