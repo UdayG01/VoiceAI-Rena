@@ -243,7 +243,7 @@ def response(
             temp_path = tmp.name
 
         segments, _ = local_stt_model.transcribe(
-            temp_path, language="en", beam_size=5, vad_filter=True
+            temp_path, beam_size=5, vad_filter=True
         )
         transcript = " ".join([segment.text for segment in segments]).strip()
     except Exception as e:
