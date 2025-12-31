@@ -312,24 +312,63 @@ def create_stream() -> Stream:
             gr.Textbox(label="Name"),
             gr.Textbox(label="Email")
         ],
-        ui_args={"title": "Renata Support Bot (GPU Accelerated)"}
+        ui_args={"title": "Renata Support Bot (Veena TTS)"}
     )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
+    parser.add_argument("--fastphone", action="store_true")
+    parser.add_argument("--remote", action="store_true")
+
     args = parser.parse_args()
 
     stream = create_stream()
-    
-    if args.phone:
+    logger.info("🎧 Stream handler configured")
+
+    if args.remote:
+        logger.info("🌍 Launching REMOTE voice endpoint (ngrok + FastAPI)...")
+
         from pyngrok import ngrok
+        from fastapi import FastAPI
         import uvicorn
+
+        # Ensure token is set
         ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
-        public_url = ngrok.connect(8000, "http")
-        logger.info(f"🌍 Phone URL: {public_url}")
+
+        # Create app
         app = FastAPI()
         stream.mount(app)
+
+        app = gr.mount_gradio_app(
+            app,
+            stream.ui,
+            path="/"
+        )
+
+        # Start tunnel FIRST
+        public_url = ngrok.connect(8000, "http")
+        logger.success(f"🔗 Public Voice Endpoint: {public_url}")
+
+        # bind to 0.0.0.0
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+        
+    elif args.phone:
+        logger.info("📞 Launching with phone interface...")
+
+        # Start ngrok tunnel
+        from pyngrok import ngrok
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+        public_url = ngrok.connect(8000, "http")
+        logger.info(f"🌍 Public ngrok URL: {public_url}")
+
+        import uvicorn
+        app = FastAPI()
+        stream.mount(app)
+        # Fix: Removed duplicate uvicorn.run call and redundant reload/workers args for simple execution
         uvicorn.run(app, host="127.0.0.1", port=8000)
+    elif args.fastphone:
+        stream.fastphone()
     else:
+        logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()

@@ -545,7 +545,7 @@ tools = [rag_search, register_complaint]
 
 model = ChatOllama(
     model="qwen3:1.7b",
-    #model="gpt-oss:20b"
+    #model="gpt-oss:20b",
     temperature=0,
     max_tokens=180,
 )
