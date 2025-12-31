@@ -115,7 +115,7 @@ def response(
     # Force language instruction if Hindi is detected to guide the smaller LLM
     lang_instruction = ""
     if detected_lang == "hi":
-        lang_instruction = " (IMPORTANT: Reply in Hindi)"
+        lang_instruction = " (IMPORTANT: Reply in Hinglish)"
     
     combined_input = f"{transcript}{lang_instruction}"
 
@@ -170,8 +170,8 @@ def response(
     # 5. Local TTS
     # stream_tts_sync yields audio chunks suitable for the stream
     # 5. Local TTS with Dynamic Language
-    # Use 'hi' for Hindi, default to 'en-us' for others
-    tts_lang = "hi" if detected_lang == "hi" else "en-us"
+    # Use 'en-us' for Romanized Hinglish to ensure characters are read phonetically.
+    tts_lang = "en-us"
     
     dynamic_options = KokoroTTSOptions(
         voice=options.voice,
