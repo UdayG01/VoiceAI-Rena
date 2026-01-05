@@ -22,9 +22,10 @@ from rank_bm25 import BM25Okapi
 from loguru import logger
 from dotenv import load_dotenv
 
+import torch
 # Set device and suppress Sentence Transformer warnings on import
-device = "cpu"
-# You might need to add: import torch; torch.set_default_device(device) 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+# You might need to add: torch.set_default_device(device) 
 # if you run into tensor/device issues, but usually not needed for loading.
 
 load_dotenv()
