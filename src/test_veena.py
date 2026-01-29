@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from typing import Generator, Tuple
 from contextlib import asynccontextmanager
-
+import gradio as gr
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from snac import SNAC
@@ -84,20 +84,14 @@ except Exception as e:
     logger.error(f"❌ Failed to load Whisper on GPU: {e}")
     raise e
 
-# 2. Load Veena (TTS) with 4-bit Quantization
-logger.info("⏳ Loading Veena TTS models...")
+# 2. Load Veena (TTS) in BFloat16 with Flash Attention 2
+logger.info("⏳ Loading Veena TTS models in BFloat16 with Flash Attention 2...")
 try:
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16, # Optimized for RTX 30/40/50 series
-        bnb_4bit_use_double_quant=True,
-    )
-    
     # device_map="auto" usually finds the GPU, but we verify later
     veena_model = AutoModelForCausalLM.from_pretrained(
         "maya-research/veena-tts",
-        quantization_config=quantization_config,
+        torch_dtype=torch.bfloat16, 
+        attn_implementation="flash_attention_2",  # ENABLE FLASH ATTENTION 2
         device_map={"": torch.cuda.current_device()}, 
         trust_remote_code=True,
     )
@@ -108,29 +102,32 @@ try:
 
     # 3. Load SNAC (Audio Decoder)
     snac_model = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().cuda()
-    logger.success("✅ Veena & SNAC loaded successfully on GPU.")
+    logger.success("✅ Veena & SNAC loaded successfully on GPU (BFloat16 + FA2).")
 
 except Exception as e:
     logger.error(f"❌ Failed to load TTS models: {e}")
+    logger.warning("⚠️ If Flash Attention 2 failed, ensure you have 'flash-attn' installed.")
     raise e
 
 # ==========================================
 # CORE FUNCTIONS
 # ==========================================
 
-def decode_snac_tokens(snac_tokens, snac_model):
+def decode_snac_tokens(snac_tokens, snac_model, silent=False):
     """De-interleave and decode SNAC tokens to audio"""
     if not snac_tokens:
         return None
 
-    # FIX: Ensure tokens are divisible by 7 (discard incomplete frames)
+    # Ensure tokens are divisible by 7 (discard incomplete frames)
     remainder = len(snac_tokens) % 7
     if remainder != 0:
-        logger.warning(f"⚠️ Trimming {remainder} incomplete tokens from audio stream.")
+        if not silent:
+            logger.warning(f"⚠️ Trimming {remainder} incomplete tokens from audio stream.")
         snac_tokens = snac_tokens[:-remainder]
     
     if not snac_tokens:
-        logger.warning("⚠️ No valid audio tokens remained after trimming.")
+        if not silent:
+            logger.warning("⚠️ No valid audio tokens remained after trimming.")
         return None
 
     snac_device = next(snac_model.parameters()).device
@@ -158,67 +155,106 @@ def decode_snac_tokens(snac_tokens, snac_model):
 
     return audio_hat.squeeze().clamp(-1, 1).cpu().numpy()
 
-def generate_speech(text, speaker=SPEAKER_NAME, temperature=0.1):
-    """Generate speech with timing logs"""
-    t0 = time.time()
-    
+# ==========================================
+# STREAMING INFRASTRUCTURE
+# ==========================================
+from transformers import TextStreamer
+from queue import Queue
+from threading import Thread
+
+class AudioTokenStreamer(TextStreamer):
+    """
+    Custom Streamer that captures tokens and puts them in a queue.
+    It ignores text tokens and only captures audio code tokens.
+    """
+    def __init__(self, tokenizer, token_queue: Queue):
+        super().__init__(tokenizer, skip_prompt=True)
+        self.token_queue = token_queue
+        
+    def on_finalized_text(self, text: str, stream_end: bool = False):
+        # We don't care about text decoding for audio generation
+        pass
+
+    def put(self, value):
+        # Value is a tensor of token_ids
+        if len(value.shape) > 1 and value.shape[0] > 1:
+            raise ValueError("AudioTokenStreamer only supports batch size 1")
+            
+        token_ids = value.flatten().tolist()
+        
+        for token_id in token_ids:
+            # Check if it is an audio token
+            if AUDIO_CODE_BASE_OFFSET <= token_id < (AUDIO_CODE_BASE_OFFSET + 7 * 4096):
+                self.token_queue.put(token_id)
+                
+    def end(self):
+        self.token_queue.put(None) # Signal end of stream
+
+def stream_audio_from_text(text: str, speaker=SPEAKER_NAME) -> Generator[np.ndarray, None, None]:
+    """
+    Generates audio in a streaming fashion.
+    1. Starts model.generate in a separate thread.
+    2. Consumes tokens from a queue.
+    3. Decodes audio in small chunks (e.g., 28 tokens = 4 SNAC frames).
+    """
+    # 1. Prepare Prompt
     prompt = f"<spk_{speaker}> {text}"
     prompt_tokens = veena_tokenizer.encode(prompt, add_special_tokens=False)
-
     input_tokens = [
-        START_OF_HUMAN_TOKEN,
-        *prompt_tokens,
-        END_OF_HUMAN_TOKEN,
-        START_OF_AI_TOKEN,
-        START_OF_SPEECH_TOKEN
+        START_OF_HUMAN_TOKEN, *prompt_tokens, END_OF_HUMAN_TOKEN,
+        START_OF_AI_TOKEN, START_OF_SPEECH_TOKEN
     ]
-
     input_ids = torch.tensor([input_tokens], device=veena_model.device)
     
-    # Calculate sensible max tokens
-    # Approx 7 audio tokens per text char is a safe upper bound for Veena
-    max_tokens = min(int(len(text) * 1.5) * 7 + 50, 800) 
-
-    logger.debug(f"🏃 Starting Veena Generation (Input len: {len(text)} chars)...")
+    # 2. Prepare Streamer & Queue
+    token_queue = Queue()
+    streamer = AudioTokenStreamer(veena_tokenizer, token_queue)
     
-    with torch.no_grad():
-        output = veena_model.generate(
-            input_ids,
-            max_new_tokens=max_tokens,
-            do_sample=True,
-            temperature=temperature,
-            top_p=0.9,
-            repetition_penalty=1.1, # Slight penalty to prevent loops
-            pad_token_id=veena_tokenizer.pad_token_id,
-            eos_token_id=[END_OF_SPEECH_TOKEN, END_OF_AI_TOKEN]
-        )
-
-    t1 = time.time()
-    logger.info(f"⚡ Generation Time: {t1 - t0:.2f}s")
-
-    generated_ids = output[0][len(input_tokens):].tolist()
+    # 3. Define Generation Config
+    max_tokens = min(int(len(text) * 1.5) * 7 + 100, 2048)
+    gen_kwargs = dict(
+        input_ids=input_ids,
+        max_new_tokens=max_tokens,
+        do_sample=False, # FAST greedy decoding
+        repetition_penalty=1.0, 
+        pad_token_id=veena_tokenizer.pad_token_id,
+        eos_token_id=[END_OF_SPEECH_TOKEN, END_OF_AI_TOKEN],
+        streamer=streamer
+    )
     
-    # Extract only audio tokens
-    snac_tokens = [
-        token_id for token_id in generated_ids
-        if AUDIO_CODE_BASE_OFFSET <= token_id < (AUDIO_CODE_BASE_OFFSET + 7 * 4096)
-    ]
-
-    if not snac_tokens:
-        logger.warning(f"⚠️ Generation finished but NO audio tokens found. Raw output length: {len(generated_ids)}")
-        # If the model output text instead of audio, we might see it here:
-        decoded_text = veena_tokenizer.decode(generated_ids, skip_special_tokens=True)
-        logger.debug(f"   Model Hallucination Check: {decoded_text}")
-        return None
-
-    audio = decode_snac_tokens(snac_tokens, snac_model)
-    return audio
+    # 4. Start Generation Thread
+    thread = Thread(target=veena_model.generate, kwargs=gen_kwargs)
+    thread.start()
+    
+    # 5. Consume Tokens & Yield Audio
+    buffer = []
+    CHUNK_SIZE = 28 # 28 tokens = 4 SNAC frames (divisible by 7)
+    
+    while True:
+        token = token_queue.get()
+        if token is None: # End of stream
+            break
+            
+        buffer.append(token)
+        
+        if len(buffer) >= CHUNK_SIZE:
+            # Decode chunk
+            audio_chunk = decode_snac_tokens(buffer, snac_model, silent=True)
+            if audio_chunk is not None:
+                yield audio_chunk
+            buffer = []
+            
+    # Decode remaining tokens
+    if buffer:
+        audio_chunk = decode_snac_tokens(buffer, snac_model, silent=True)
+        if audio_chunk is not None:
+            yield audio_chunk
+            
+    thread.join()
 
 def clean_text_for_tts(text: str) -> str:
-    # Remove markdown that might confuse Veena
     text = re.sub(r'\*\*|__', '', text) 
     text = re.sub(r'[#\*]', '', text)
-    # Collapse whitespace
     text = " ".join(text.split())
     return text.strip()
 
@@ -235,7 +271,7 @@ def response(
     logger.info("🎙️ Audio received.")
     audio_bytes = audio_to_bytes(audio)
 
-    # 1. Transcribe (GPU)
+    # 1. Transcribe
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
@@ -255,46 +291,112 @@ def response(
 
     if not transcript:
         logger.info("Start of speech check - Silence detected.")
-        return # Exit if silence
+        return 
 
     logger.info(f'📝 User: "{transcript}"')
     
-    # 2. Agent Logic
+    # 2. Agent Logic Setup
     set_user_query(transcript)
     combined_input = transcript
     if user_name: 
         combined_input += f" (User: {user_name})"
 
+    # 3. STREAMING LLM & TTS PIPELINE
+    # Patterns to split sentences: . ? ! 
+    split_pattern = re.compile(r'(?<=[.?!])\s+')
+    
+    current_buffer = ""
+    full_response_text = ""
+    
     try:
-        agent_res = agent.invoke(
+        logger.info("🧠 Agent Thinking (Streaming mode)...")
+        
+        # Use stream_mode="messages" to get message chunks
+        stream = agent.stream(
             {"messages": [{"role": "user", "content": combined_input}]}, 
-            config=agent_config
+            config=agent_config,
+            stream_mode="messages"
         )
-        raw_text = agent_res["messages"][-1].content
-    except Exception as e:
-        logger.error(f"Agent Error: {e}")
-        raw_text = "I encountered a system error."
 
-    # 3. TTS Generation (GPU)
-    clean_text = clean_text_for_tts(raw_text)
-    logger.info(f'🤖 Bot: "{clean_text}"')
+        for event in stream:
+            # We are looking for (message, metadata) tuples or just messages depending on the version
+            # In recent LangGraph, stream_mode="messages" yields (message, metadata) tuples or just message objects
 
-    try:
-        audio_array = generate_speech(clean_text)
-        if audio_array is not None:
-            yield (SAMPLE_RATE, audio_array)
-        else:
-            logger.warning("TTS returned None (Silence).")
+            msg_chunk = None
+            if isinstance(event, tuple):
+                 msg_chunk = event[0]
+            else:
+                 msg_chunk = event
+
+            
+            if hasattr(msg_chunk, 'content') and msg_chunk.content:
+                # Filter out Tool calls or non-final-answer chunks if necessary
+                # Simple heuristic: If it has content and is NOT a tool call
+                content = msg_chunk.content
+                if isinstance(content, str):
+                    current_buffer += content
+                    full_response_text += content
+                    
+                    # Check for sentence boundaries in buffer
+                    # We look for punctuation followed by space or end of string
+                    if re.search(r'[.?!]\s', current_buffer):
+                        # Split buffer into sentences
+                        parts = split_pattern.split(current_buffer)
+                        
+                        # Process all complete sentences (all except the last potentially incomplete one)
+                        # BUT: If the last part ends with punctuation, it is also complete.
+                        
+                        to_speak = []
+                        if len(parts) > 1:
+                            to_speak = parts[:-1]
+                            current_buffer = parts[-1]
+                        elif re.search(r'[.?!]$', parts[0]):
+                             to_speak = [parts[0]]
+                             current_buffer = ""
+                        
+                        for sentence in to_speak:
+                            sentence = sentence.strip()
+                            if sentence:
+                                clean_sent = clean_text_for_tts(sentence)
+                                if clean_sent:
+                                    logger.debug(f"🗣️ TTS Streaming Sentence: {clean_sent}")
+                                    for audio_chunk in stream_audio_from_text(clean_sent, speaker=SPEAKER_NAME):
+                                        yield (SAMPLE_RATE, audio_chunk)
+
+        # Process any remaining text in buffer
+        if current_buffer.strip():
+            clean_sent = clean_text_for_tts(current_buffer)
+            if clean_sent:
+                logger.debug(f"🗣️ TTS Streaming Final Sentence: {clean_sent}")
+                for audio_chunk in stream_audio_from_text(clean_sent, speaker=SPEAKER_NAME):
+                    yield (SAMPLE_RATE, audio_chunk)
+
+        logger.info(f"🧠 Full Response: {full_response_text[:50]}...")
+
     except Exception as e:
-        logger.error(f"TTS Generation Error: {e}")
+        logger.error(f"Streaming Error: {e}")
+        # Only fallback if absolutely nothing was generated
+        if not full_response_text:
+             logger.warning("⚠️ Stream failed, attempting fallback invoke.")
+             try:
+                agent_res = agent.invoke(
+                    {"messages": [{"role": "user", "content": combined_input}]}, 
+                    config=agent_config
+                )
+                raw_text = agent_res["messages"][-1].content
+                # ... existing fallback processing ...
+                clean_text = clean_text_for_tts(raw_text)
+                for audio_chunk in stream_audio_from_text(clean_text, speaker=SPEAKER_NAME):
+                    yield (SAMPLE_RATE, audio_chunk)
+             except Exception as fallback_err:
+                 logger.error(f"Fallback Error: {fallback_err}")
 
 def startup(*args):
     logger.info("🔊 Generating Startup Greeting...")
     try:
-        # Pre-warm the model
-        audio = generate_speech("Hi! I am Rena. How can I help you?")
-        if audio is not None:
-            yield (SAMPLE_RATE, audio)
+        # Stream startup too
+        for audio_chunk in stream_audio_from_text("Hi! I am Rena. How can I help you?", speaker=SPEAKER_NAME):
+            yield (SAMPLE_RATE, audio_chunk)
     except Exception as e:
         logger.error(f"Startup Audio Error: {e}")
 
@@ -312,24 +414,63 @@ def create_stream() -> Stream:
             gr.Textbox(label="Name"),
             gr.Textbox(label="Email")
         ],
-        ui_args={"title": "Renata Support Bot (GPU Accelerated)"}
+        ui_args={"title": "Renata Support Bot (Veena TTS - True Streaming)"}
     )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="RenataAI Voice Agent")
     parser.add_argument("--phone", action="store_true")
+    parser.add_argument("--fastphone", action="store_true")
+    parser.add_argument("--remote", action="store_true")
+
     args = parser.parse_args()
 
     stream = create_stream()
-    
-    if args.phone:
+    logger.info("🎧 Stream handler configured")
+
+    if args.remote:
+        logger.info("🌍 Launching REMOTE voice endpoint (ngrok + FastAPI)...")
+
         from pyngrok import ngrok
+        from fastapi import FastAPI
         import uvicorn
+
+        # Ensure token is set
         ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
-        public_url = ngrok.connect(8000, "http")
-        logger.info(f"🌍 Phone URL: {public_url}")
+
+        # Create app
         app = FastAPI()
         stream.mount(app)
+
+        app = gr.mount_gradio_app(
+            app,
+            stream.ui,
+            path="/"
+        )
+
+        # Start tunnel FIRST
+        public_url = ngrok.connect(8000, "http")
+        logger.success(f"🔗 Public Voice Endpoint: {public_url}")
+
+        # bind to 0.0.0.0
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+        
+    elif args.phone:
+        logger.info("📞 Launching with phone interface...")
+
+        # Start ngrok tunnel
+        from pyngrok import ngrok
+        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
+        public_url = ngrok.connect(8000, "http")
+        logger.info(f"🌍 Public ngrok URL: {public_url}")
+
+        import uvicorn
+        app = FastAPI()
+        stream.mount(app)
+        # Fix: Removed duplicate uvicorn.run call and redundant reload/workers args for simple execution
         uvicorn.run(app, host="127.0.0.1", port=8000)
+    elif args.fastphone:
+        stream.fastphone()
     else:
+        logger.info("✔️ Launching custom Gradio UI...")
         stream.ui.launch()
