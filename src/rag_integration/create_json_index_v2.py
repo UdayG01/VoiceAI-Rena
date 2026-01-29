@@ -21,7 +21,7 @@ from typing import Any, List, Dict
 # ==============================
 # Configuration
 # ==============================
-COMPANY_DATA_FILE = "src/avaada_presentation.json"
+COMPANY_DATA_FILE = "src/renata_data2.json"
 INDEX_FILE_PATH = "src/rag_integration/company_rag_index_3.bin"
 CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_3.npy"
 METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_3.npy"
