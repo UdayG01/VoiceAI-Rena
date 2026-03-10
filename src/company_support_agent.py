@@ -543,10 +543,10 @@ tools = [rag_search, register_complaint]
 """
     LANGRAPH AGENT SETUP
 """
-# model = ChatGroq(
-#     model="llama-3.1-8b-instant",
-#     max_tokens=256,
-# )
+model = ChatGroq(
+    model="llama-3.1-8b-instant",
+    max_tokens=256,
+)
 
 # model = ChatOpenAI(
 #   api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -555,12 +555,23 @@ tools = [rag_search, register_complaint]
 #   max_tokens=180  
 # )
 
-model = ChatOllama(
-    model="qwen3:1.7b",
-    #model="gpt-oss:20b",
-    temperature=0,
-    max_tokens=180,
-)
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# # Initialize the Gemini Model
+# model = ChatGoogleGenerativeAI(
+#     model="gemini-3-flash-preview", # or "gemini-1.5-pro"
+#     google_api_key=os.getenv("GOOGLE_API_KEY"),
+#     temperature=0,
+#     max_tokens=180,
+#     # Convert system instructions to the format Gemini expects
+#     convert_system_message_to_human=True 
+# )
+
+# model = ChatOllama(
+#     model="qwen3:4b",
+#     #model="gpt-oss:20b",
+#     temperature=0,
+#     max_tokens=180,
+# )
 memory = InMemorySaver()
 
 agent = create_react_agent(
