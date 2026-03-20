@@ -1,3 +1,6 @@
+# This script serves as an example main script for a TTS-based agent using FastRTC,
+# I will further test on various TTS models, LLMs, and STT models, but the base structure should be similar across implementations.
+
 import argparse
 from typing import Generator, Tuple
 
