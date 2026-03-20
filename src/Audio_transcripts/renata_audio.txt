@@ -1,0 +1,49 @@
+(Transcribed by TurboScribe.ai. Go Unlimited to remove this message.)
+
+So Renata as a company is based in Gurgaon, although we have customers across India. And our primary focus is to provide data automation for our customers in the manufacturing domain. And we provide that through IoT and AI solutions. 
+
+So that's what we do as a company. And I am one of the co-founders of the company. My name is Anil Sagar and we started this company six years back.
+
+And so before that, I was in telecom domain for almost 20 years. And before that, let's say MBA from IIM Calcutta, 99 pass out. Engineering from electrical engineering from IIT Delhi, 97 pass out.
+
+So that's a bit about me and the company. These are the solutions that we have as verticals. So we essentially have four verticals where we have solutions for manufacturing sector.
+
+So first one is focused on the production side. Second one is focused on utilities and maintenance. Third one is on quality and fourth one is on process automation.
+
+So these are the four areas where we have solutions in production side. What we do is we connect into various machines, whether they are CNC machines or automated machines, PLC automated machines or conventional machines. And we try and get the data from the machines to increase the overall production productivity.
+
+So we help out with machine productivity, manpower productivity and raw material productivity. We also do product traceability. We also have solutions across digital twin and virtual reality training for operators in a safe environment.
+
+So these are the kind of solutions which are more relevant for production side. Then we have the solutions which are more of industrial IoT, but focused on utilities and maintenance within a manufacturing company. So one of the key solutions out here is machine health monitoring, where we deploy vibration sensors, load sensors, temperature sensors to help out with preventive maintenance of machines.
+
+Similarly, for industrial appliances, which are critical for operations like compressors, UPSs and chillers. So we directly integrate into their controllers and help out maintaining them all the time so that your production is supported. There is no halt in your production.
+
+We also do environmental sensors, including air quality. It could be also temperature monitoring in a paint shop, humidity in a certain environment, pressure in a hydraulic bank. So various applications we cover so that you get real time data about various environments and you can manage in case required.
+
+We also help you in optimizing the usage of various resources, resources like water, gases, energy, compressed air and so on. So we do IoT solutions across those and we help out in optimizing those resources. So we have a very good background in energy.
+
+So we not only get data about your energy consumption, but we also offer energy saving solutions. So these are the kind of solutions which are relevant for utilities and maintenance, mostly on the cost side. This was, as I said, was focused on production. 
+
+So this was mostly on the revenue side. Now coming to the third vertical, third vertical is focused on quality and safety compliance. So in quality, we do defect inspection on the products that you are producing so that you can build better trust with your customers.
+
+Similarly, other solutions are product countings, text reading, barcode reading, missing child part check and product classification. So these are done using industrial machine vision cameras. We also do solutions using CCTV cameras and doing AI on top of that.
+
+So these are the kind of solutions which are around safety and compliance within your company. And we also do activity monitoring. So we will go deeper into these kind of solutions as we move into the presentation.
+
+But broadly, these are the kind of vision based solutions that we do for quality, maintenance and safety compliance within the factory. We also do AI recommendations based on whatever IoT data that we collect from various machines and sensors in the factory. So that is also another AI based solution that we have.
+
+And finally, we have solutions wherever you have manual intervention. So all these solutions are relevant for machines. But here, let's say if there are, let's say, people who are following a certain process, let's say on your assembly line, manual assembly line.
+
+So they have to follow a particular process to assemble that particular product. So we make sure that they follow that process and the quality on the process side and the manual operation side is also maintained. So in that regard, we have digital SOP displays, which are also used for showing your plan versus actual and can also be used by operators to fill checklists.
+
+So whenever there is a changeover of product and whenever there is an inspection and stuff like that, you can use those checklists so that you are able to use that data more effectively. And then we have the. So this is the display of SOPs and then you have monitoring of SOPs.
+
+So once you have shown the right SOP, which is to be followed by a particular operator on a particular station, SOP monitoring will ensure that he follows that process and he or she doesn't miss any process step. So this is used. So this solution is offered using CCTV cameras or similar cameras and very similar to activity monitoring.
+
+So. So these are solutions which are which are going to help you in following your operators, following a particular process and delivering a high quality product. Then we have solutions like robotic process automation, which really help out in automating data entry across various applications on a PC.
+
+So it's an automation which will happen across applications on a PC environment. For example, you get a number of invoices from your vendors. So instead of manually filling data from those invoices into your payment systems, you can create a robotic process automation, which will read out those invoices and fill up the data in your ERP system or payment system automatically.
+
+So this really helps out in reducing the data errors and makes the whole process very fast. And then we have mechanical automation like robotic integration into CNC machine, CNC tool offset automation and then deployment of actuators, scanners and sensors and so on and so forth. So. 
+
+So these are the solutions that we have. So now, would you like me to focus on certain specific solutions, certain specific vertical, or do you want me to go through each and every vertical, go through each and every vertical, go through each and every vertical.

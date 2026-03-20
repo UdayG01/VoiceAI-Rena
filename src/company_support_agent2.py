@@ -1,3 +1,7 @@
+# Changes on 2026-03-20: Path compliance refactoring.
+# Purpose: Align code with new directory structure (RAG assets in 'rag_data/', JSON in 'json/').
+# Documentation: See 'docs/RAG_UPDATES_2026_03_20.md' for details.
+
 import json
 import os
 import smtplib
@@ -23,12 +27,15 @@ from langchain_core.messages import HumanMessage
 device = "cpu"
 load_dotenv()
 logger.remove()
-logger.add(lambda msg: print(msg), colorize=True,
-           format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>")
+logger.add(
+    lambda msg: print(msg),
+    colorize=True,
+    format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>",
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RAG_INTEGRATION_DIR = os.path.join(BASE_DIR, "rag_integration")
-DATA_FILE_PATH = os.path.join(BASE_DIR, "renata_data.json")
+RAG_INTEGRATION_DIR = os.path.join(BASE_DIR, "rag_integration", "rag_data")
+DATA_FILE_PATH = os.path.join(BASE_DIR, "json", "renata_data.json")
 INDEX_FILE_PATH = os.path.join(RAG_INTEGRATION_DIR, "company_rag_index.bin")
 CORPUS_FILE_PATH = os.path.join(RAG_INTEGRATION_DIR, "company_corpus_chunks.npy")
 
@@ -37,16 +44,23 @@ RAG_CORPUS = None
 RAG_EMBEDDER = None
 
 try:
-    logger.info("⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)...")
-    RAG_EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2', device=device)
+    logger.info(
+        "⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)..."
+    )
+    RAG_EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2", device=device)
     RAG_INDEX = faiss.read_index(INDEX_FILE_PATH)
     RAG_CORPUS = np.load(CORPUS_FILE_PATH, allow_pickle=True)
-    logger.info(f"✅ RAG components loaded. Index dimension: {RAG_INDEX.d}, Chunks: {len(RAG_CORPUS)}")
+    logger.info(
+        f"✅ RAG components loaded. Index dimension: {RAG_INDEX.d}, Chunks: {len(RAG_CORPUS)}"
+    )
 except FileNotFoundError as e:
-    logger.error(f"❌ RAG files not found at {e.filename}. Ensure they are in 'rag_integration'.")
+    logger.error(
+        f"❌ RAG files not found at {e.filename}. Ensure they are in 'rag_integration'."
+    )
     RAG_INDEX, RAG_CORPUS, RAG_EMBEDDER = None, None, None
 except Exception as e:
     logger.error(f"❌ Error loading RAG: {e}")
+
 
 def load_company_data():
     if not os.path.exists(DATA_FILE_PATH):
@@ -59,14 +73,18 @@ def load_company_data():
         logger.error("renata_data.json is invalid JSON.")
         return {}
 
+
 COMPANY_DATA = load_company_data()
+
 
 @tool
 def rag_search(query: str, k: int = 3) -> str:
     if RAG_INDEX is None or RAG_CORPUS is None or RAG_EMBEDDER is None:
         return "ERROR: RAG system unavailable."
     try:
-        query_embedding = RAG_EMBEDDER.encode(query, convert_to_tensor=False, device=device).astype(np.float32)
+        query_embedding = RAG_EMBEDDER.encode(
+            query, convert_to_tensor=False, device=device
+        ).astype(np.float32)
         query_embedding = query_embedding.reshape(1, -1)
         D, I = RAG_INDEX.search(query_embedding, k)
         valid_indices = [i for i in I[0] if i != -1 and i < len(RAG_CORPUS)]
@@ -78,12 +96,14 @@ def rag_search(query: str, k: int = 3) -> str:
         logger.error(f"RAG search failed: {e}")
         return "ERROR: RAG search failed."
 
+
 complaint_database = {}
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 SUPPORT_EMAIL = os.getenv("COMPANY_SUPPORT_EMAIL")
+
 
 def send_email(to_email: str, subject: str, body: str):
     if not all([SMTP_HOST, SMTP_USER, SMTP_PASS, SUPPORT_EMAIL]):
@@ -104,22 +124,40 @@ def send_email(to_email: str, subject: str, body: str):
     except Exception as e:
         logger.error(f"Email sending failed: {e}")
 
+
 @tool
-def register_complaint(name: str, email: str, issue: str,
-                       phone: str = "9876543210", company: str = "RenataIOT") -> dict:
-    sanitized_email = email.lower().replace(" dot ", ".").replace(" point ", ".")\
-                                   .replace(" full stop ", ".").replace(" at ", "@")\
-                                   .replace(" a t ", "@")
+def register_complaint(
+    name: str,
+    email: str,
+    issue: str,
+    phone: str = "9876543210",
+    company: str = "RenataIOT",
+) -> dict:
+    sanitized_email = (
+        email.lower()
+        .replace(" dot ", ".")
+        .replace(" point ", ".")
+        .replace(" full stop ", ".")
+        .replace(" at ", "@")
+        .replace(" a t ", "@")
+    )
     sanitized_email = "".join(sanitized_email.split())
-    final_email = sanitized_email if "@" in sanitized_email and "." in sanitized_email else email
+    final_email = (
+        sanitized_email if "@" in sanitized_email and "." in sanitized_email else email
+    )
 
     ticket_id = "TKT-" + uuid.uuid4().hex[:8].upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     record = {
-        "ticket_id": ticket_id, "name": name, "email": final_email,
-        "issue": issue, "phone": phone, "company": company,
-        "timestamp": timestamp, "status": "Open"
+        "ticket_id": ticket_id,
+        "name": name,
+        "email": final_email,
+        "issue": issue,
+        "phone": phone,
+        "company": company,
+        "timestamp": timestamp,
+        "status": "Open",
     }
     complaint_database[ticket_id] = record
 
@@ -141,8 +179,13 @@ Our support team will contact you soon.
 
     send_email(final_email, f"Complaint Registered - {ticket_id}", email_body)
 
-    return {"message": "Complaint submitted.", "ticket_id": ticket_id,
-            "recorded_issue": issue, "contact": final_email}
+    return {
+        "message": "Complaint submitted.",
+        "ticket_id": ticket_id,
+        "recorded_issue": issue,
+        "contact": final_email,
+    }
+
 
 system_prompt = """
 You are Rena, the AI Support Assistant for Renata.

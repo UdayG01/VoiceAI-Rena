@@ -1,3 +1,10 @@
+# Changes on 2026-03-20: Path compliance refactoring.
+# Purpose: Align code with new directory structure (RAG assets in 'rag_data/', JSON in 'json/').
+# Documentation: See 'docs/RAG_UPDATES_2026_03_20.md' for details.
+
+# edit - 19-03-26
+# editing the language to use pure devnagri script for english as well as hindi, since the tts model is trained on devnagri
+
 import json
 import os
 import smtplib
@@ -15,6 +22,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
+
 # from langchain.agents import create_agent
 from langchain.tools import tool
 from rank_bm25 import BM25Okapi
@@ -23,9 +31,10 @@ from loguru import logger
 from dotenv import load_dotenv
 
 import torch
+
 # Set device and suppress Sentence Transformer warnings on import
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# You might need to add: torch.set_default_device(device) 
+# You might need to add: torch.set_default_device(device)
 # if you run into tensor/device issues, but usually not needed for loading.
 
 load_dotenv()
@@ -40,6 +49,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 
 # Generate timestamp for log filename
 from datetime import datetime
+
 log_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 LOG_FILE = LOGS_DIR / f"rag_session_{log_timestamp}.md"
 
@@ -51,7 +61,7 @@ logger.add(
     format="**{time:HH:mm:ss}** | `{level}` | {message}",
     level="DEBUG",
     mode="w",
-    encoding="utf-8"
+    encoding="utf-8",
 )
 
 # Add console logger (basic INFO like before, but exclude detailed tool logs)
@@ -60,13 +70,16 @@ logger.add(
     colorize=True,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>",
     level="INFO",
-    filter=lambda record: "🔧" not in record["message"] and "🧠 Agent Input:" not in record["message"] and "🧠 Agent returned" not in record["message"] and "🧠 Raw Agent Response:" not in record["message"]
+    filter=lambda record: "🔧" not in record["message"]
+    and "🧠 Agent Input:" not in record["message"]
+    and "🧠 Agent returned" not in record["message"]
+    and "🧠 Raw Agent Response:" not in record["message"],
 )
 
 logger.info(f"📝 Session logs saved to: logs/{LOG_FILE.name}")
 
 # Write markdown header to log file
-with open(LOG_FILE, 'a', encoding='utf-8') as f:
+with open(LOG_FILE, "a", encoding="utf-8") as f:
     f.write(f"""# RAG Voice Agent Session Log
 **Session Started:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
 **Log File:** `{LOG_FILE.name}`
@@ -82,9 +95,9 @@ logger.debug(f"Initialized RAG session log at {LOG_FILE}")
 
 # --- 1. RAG Index Configuration & Loading ---
 
-INDEX_FILE_PATH = "src/rag_integration/company_rag_index_3.bin"
-CORPUS_FILE_PATH = "src/rag_integration/company_corpus_chunks_3.npy"
-METADATA_FILE_PATH = "src/rag_integration/company_corpus_metadata_3.npy"
+INDEX_FILE_PATH = "src/rag_integration/rag_data/company_rag_index_3.bin"
+CORPUS_FILE_PATH = "src/rag_integration/rag_data/company_corpus_chunks_3.npy"
+METADATA_FILE_PATH = "src/rag_integration/rag_data/company_corpus_metadata_3.npy"
 
 RAG_INDEX = None
 RAG_CORPUS = None
@@ -94,28 +107,23 @@ BM25_INDEX = None
 BM25_TOKENIZED_CORPUS = None
 
 try:
-    logger.info("⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)...")
+    logger.info(
+        "⏳ Loading RAG components (Sentence Transformer, FAISS index, Corpus)..."
+    )
 
-    RAG_EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2', device=device)
+    RAG_EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2", device=device)
     RAG_INDEX = faiss.read_index(INDEX_FILE_PATH)
     RAG_CORPUS = np.load(CORPUS_FILE_PATH, allow_pickle=True)
     RAG_METADATA = np.load(METADATA_FILE_PATH, allow_pickle=True)
 
-
     # --- NEW: BM25 setup ---
-    BM25_TOKENIZED_CORPUS = [
-        chunk.lower().split() for chunk in RAG_CORPUS
-    ]
+    BM25_TOKENIZED_CORPUS = [chunk.lower().split() for chunk in RAG_CORPUS]
     BM25_INDEX = BM25Okapi(BM25_TOKENIZED_CORPUS)
 
-    logger.info(
-        f"✅ RAG loaded | Chunks: {len(RAG_CORPUS)} | "
-        f"Index dim: {RAG_INDEX.d}"
-    )
+    logger.info(f"✅ RAG loaded | Chunks: {len(RAG_CORPUS)} | Index dim: {RAG_INDEX.d}")
 
 except Exception as e:
     logger.error(f"❌ Error loading RAG components: {e}")
-
 
 
 """
@@ -123,16 +131,20 @@ except Exception as e:
 - RAG Search Tool: Retrieves relevant company info from the knowledge base.
 - Complaint Registration Tool: Gathers complaint details and sends confirmation email.
 """
+
+
 # The load_company_data function is updated to look for 'renata_data.json'.
 def load_company_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     # --- CHANGED to renata_data.json ---
-    file_path = os.path.join(base_dir, "renata_data.json") 
+    file_path = os.path.join(base_dir, "json", "renata_data.json")
 
     if not os.path.exists(file_path):
         # --- CHANGED to renata_data.json ---
-        logger.warning(f"renata_data.json not found at {file_path}. Company data for complaint logic might be incomplete.")
-        return {} # Return empty dict instead of raising FileNotFoundError to let agent run
+        logger.warning(
+            f"renata_data.json not found at {file_path}. Company data for complaint logic might be incomplete."
+        )
+        return {}  # Return empty dict instead of raising FileNotFoundError to let agent run
 
     try:
         with open(file_path, "r") as f:
@@ -140,7 +152,8 @@ def load_company_data():
     except json.JSONDecodeError:
         logger.error("renata_data.json is not valid JSON.")
         return {}
-    
+
+
 COMPANY_DATA = load_company_data()
 
 # --- Global Context for Query Validation ---
@@ -162,19 +175,55 @@ def extract_keywords(query: str) -> list:
     """
     # Common stop words to ignore
     stop_words = {
-        'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
-        'can', 'may', 'might', 'must', 'about', 'tell', 'me', 'what', 'how', 'why',
-        'when', 'where', 'which', 'who', 'its', 'it', 'this', 'that', 'these', 'those'
+        "a",
+        "an",
+        "the",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "can",
+        "may",
+        "might",
+        "must",
+        "about",
+        "tell",
+        "me",
+        "what",
+        "how",
+        "why",
+        "when",
+        "where",
+        "which",
+        "who",
+        "its",
+        "it",
+        "this",
+        "that",
+        "these",
+        "those",
     }
-    
+
     # Extract words, convert to lowercase, filter stop words
     words = query.lower().split()
-    keywords = [w.strip('.,!?;:') for w in words if w.strip('.,!?;:') not in stop_words]
-    
+    keywords = [w.strip(".,!?;:") for w in words if w.strip(".,!?;:") not in stop_words]
+
     # Keep meaningful terms (length > 2)
     keywords = [k for k in keywords if len(k) > 2]
-    
+
     return keywords
 
 
@@ -185,17 +234,17 @@ def validate_rag_query(original_query: str, llm_query: str) -> str:
     """
     # Extract important keywords from original
     key_terms = extract_keywords(original_query)
-    
+
     # If original query is very short, just use it directly
     if len(key_terms) <= 2:
         logger.debug(f"🔍 Short query, using original: '{original_query}'")
         return original_query
-    
+
     # Check if LLM query preserved at least 50% of key terms
     llm_lower = llm_query.lower()
     preserved_count = sum(1 for term in key_terms if term in llm_lower)
     preservation_rate = preserved_count / len(key_terms) if key_terms else 0
-    
+
     if preservation_rate < 0.5:
         logger.warning(
             f"🔍 Query validation FAILED: {preservation_rate:.0%} keywords preserved\n"
@@ -221,18 +270,20 @@ def rag_search(query: str, k: int = 5) -> str:
     with increased candidate retrieval (Fix 1) and section diversification (Fix 2).
     """
     global _original_user_query
-    
+
     # Validate query against original user input if available
     if _original_user_query:
         validated_query = validate_rag_query(_original_user_query, query)
         if validated_query != query:
-            logger.info(f"🔧 TOOL CALL: rag_search(query='{query}' → CORRECTED to '{validated_query}', k={k})")
+            logger.info(
+                f"🔧 TOOL CALL: rag_search(query='{query}' → CORRECTED to '{validated_query}', k={k})"
+            )
             query = validated_query
         else:
             logger.info(f"🔧 TOOL CALL: rag_search(query='{query}' ✓ validated, k={k})")
     else:
         logger.info(f"🔧 TOOL CALL: rag_search(query='{query}', k={k})")
-    
+
     if (
         RAG_INDEX is None
         or RAG_CORPUS is None
@@ -248,24 +299,23 @@ def rag_search(query: str, k: int = 5) -> str:
         # -----------------------
         # 1. Embed the query
         # -----------------------
-        query_embedding = RAG_EMBEDDER.encode(
-            query,
-            convert_to_tensor=False,
-            device=device
-        ).astype(np.float32).reshape(1, -1)
+        query_embedding = (
+            RAG_EMBEDDER.encode(query, convert_to_tensor=False, device=device)
+            .astype(np.float32)
+            .reshape(1, -1)
+        )
 
         # -----------------------
         # Fix 1: Retrieve MORE candidates than k
         # -----------------------
         initial_k = min(10, len(RAG_CORPUS))  # Increased candidate pool
-        final_k = k                             # tool API remains unchanged
+        final_k = k  # tool API remains unchanged
 
         distances, vector_ids = RAG_INDEX.search(query_embedding, initial_k)
 
         # Convert L2 distance → similarity
         vector_scores = {
-            idx: 1.0 / (1.0 + dist)
-            for idx, dist in zip(vector_ids[0], distances[0])
+            idx: 1.0 / (1.0 + dist) for idx, dist in zip(vector_ids[0], distances[0])
         }
 
         # -----------------------
@@ -292,9 +342,7 @@ def rag_search(query: str, k: int = 5) -> str:
         seen_sections = set()
 
         for idx, score in sorted(
-            hybrid_scores.items(),
-            key=lambda x: x[1],
-            reverse=True
+            hybrid_scores.items(), key=lambda x: x[1], reverse=True
         ):
             section = RAG_METADATA[idx].get("top_section")
 
@@ -310,24 +358,29 @@ def rag_search(query: str, k: int = 5) -> str:
         # -----------------------
         retrieved_chunks = [RAG_CORPUS[idx] for idx in selected_indices]
         result = "---".join(retrieved_chunks)
-        
+
         # Log detailed retrieval info
-        retrieved_sections = [RAG_METADATA[idx].get("top_section", "unknown") for idx in selected_indices]
-        logger.info(f"🔧 TOOL RESULT: Retrieved {len(retrieved_chunks)} chunks from sections: {retrieved_sections}")
+        retrieved_sections = [
+            RAG_METADATA[idx].get("top_section", "unknown") for idx in selected_indices
+        ]
+        logger.info(
+            f"🔧 TOOL RESULT: Retrieved {len(retrieved_chunks)} chunks from sections: {retrieved_sections}"
+        )
         logger.debug(f"🔧 Retrieved chunks: {retrieved_chunks}")
-        
+
         return result
 
     except Exception as e:
-        error_msg = f"ERROR: An error occurred during the knowledge base search: {str(e)}"
+        error_msg = (
+            f"ERROR: An error occurred during the knowledge base search: {str(e)}"
+        )
         logger.error(f"🔧 TOOL ERROR: Hybrid RAG search failed: {e}")
         logger.exception(e)
         return error_msg
 
 
-
 # --- 3. Complaint Handling Tools (Unchanged) ---
-complaint_database = {} # in-memory (can be replaced with SQLite later)
+complaint_database = {}  # in-memory (can be replaced with SQLite later)
 
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
@@ -339,8 +392,10 @@ SUPPORT_EMAIL = os.getenv("COMPANY_SUPPORT_EMAIL")
 def send_email(to_email: str, subject: str, body: str):
     """Helper function to send email via SMTP. Requires environment variables."""
     if not all([SMTP_HOST, SMTP_USER, SMTP_PASS, SUPPORT_EMAIL]):
-        logger.error("SMTP environment variables are not fully configured. Email not sent.")
-        return 
+        logger.error(
+            "SMTP environment variables are not fully configured. Email not sent."
+        )
+        return
 
     msg = MIMEMultipart()
     msg["From"] = SUPPORT_EMAIL
@@ -361,7 +416,13 @@ def send_email(to_email: str, subject: str, body: str):
 
 
 @tool
-def register_complaint(name: str, email: str, issue: str, phone: str = "9876543210", company: str = "RenataIOT") -> dict:
+def register_complaint(
+    name: str,
+    email: str,
+    issue: str,
+    phone: str = "9876543210",
+    company: str = "RenataIOT",
+) -> dict:
     """
     Register a customer complaint and send them a confirmation email.
 
@@ -375,7 +436,9 @@ def register_complaint(name: str, email: str, issue: str, phone: str = "98765432
     Returns:
         A structured dict with ticket details.
     """
-    logger.info(f"🔧 TOOL CALL: register_complaint(name='{name}', email='{email}', issue='{issue}', phone='{phone}', company='{company}')")
+    logger.info(
+        f"🔧 TOOL CALL: register_complaint(name='{name}', email='{email}', issue='{issue}', phone='{phone}', company='{company}')"
+    )
 
     ticket_id = "TKT-" + uuid.uuid4().hex[:8].upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -388,7 +451,7 @@ def register_complaint(name: str, email: str, issue: str, phone: str = "98765432
         "phone": phone,
         "company": company,
         "timestamp": timestamp,
-        "status": "Open"
+        "status": "Open",
     }
 
     # Save to in-memory DB
@@ -422,12 +485,12 @@ Renata Support Team
         "message": "Complaint submitted and confirmation email sent.",
         "ticket_id": ticket_id,
         "recorded_issue": issue,
-        "contact": email
+        "contact": email,
     }
-    
+
     logger.info(f"🔧 TOOL RESULT: Complaint registered - Ticket ID: {ticket_id}")
     logger.debug(f"🔧 Full result: {result}")
-    
+
     return result
 
 
@@ -491,16 +554,36 @@ SPECIFIC_INFO_PROMPT = """
    - Always cite specific client examples when available (e.g., FCC Clutch from Japan).
 """
 
+# LANGUAGE_PROMPT = """
+# 5. **LANGUAGE HANDLING**:
+#    - If the user query is in English, your response MUST be in English.
+#    - If the user query is in Hindi, your response MUST be in **Hinglish** (Conversational Hindi with English words).
+#      - Use Latin script (Romanized Hindi).
+#      - Keep technical terms, company names, and numbers in English.
+#      - Use Hindi for sentence structure, verbs, and common connectors.
+#      - Example: "Aapka ticket create kar diya gaya hai. Support team jald hi aapse contact karegi."
+#    - Do NOT translate Hindi queries into English responses.
+# """
+# Changes on 2026-03-20: Path compliance refactoring.
+# Purpose: Align code with new directory structure (RAG assets in 'rag_data/', JSON in 'json/').
+# Documentation: See 'docs/RAG_UPDATES_2026_03_20.md' for details.
+
+# edit - 19-03-26
+
+# editing the language to use pure devnagri script for english as well as hindi, since the tts model is trained on devnagri
+
 LANGUAGE_PROMPT = """
-5. **LANGUAGE HANDLING**:
-   - If the user query is in English, your response MUST be in English.
-   - If the user query is in Hindi, your response MUST be in **Hinglish** (Conversational Hindi with English words).
-     - Use Latin script (Romanized Hindi).
-     - Keep technical terms, company names, and numbers in English.
-     - Use Hindi for sentence structure, verbs, and common connectors.
-     - Example: "Aapka ticket create kar diya gaya hai. Support team jald hi aapse contact karegi."
-   - Do NOT translate Hindi queries into English responses.
+5. **LANGUAGE & SCRIPT HANDLING (PHONETIC DEVANAGARI ONLY)**:
+   - **Script Rule**: Your entire response MUST be written in **Devanagari script**. Do NOT use Latin/Roman alphabets (A-Z) under any circumstances.
+   - **Language Selection**:
+     - If the user query is in **English**: Respond in English, but **transliterate** the English words phonetically into Devanagari. Do NOT translate the meaning into Hindi.
+       - *Example*: "Hi, I am Rena, Renata's support assistant" -> "हाइ, आइ एम रेना, रेनाटास सपोर्ट असिस्टन्ट"
+     - If the user query is in **Hindi**: Respond in **Hinglish** (Conversational Hindi mixed with English keywords), but write everything in Devanagari.
+       - *Example*: "Aapka order process ho raha hai" -> "आपका ऑर्डर प्रोसेस हो रहा है।"
+   - **Technical Terms**: Keep technical terms in their original English form but transliterate them into Devanagari (e.g., "Server" becomes "सर्वर").
+   - **Constraint**: Accuracy in phonetic transliteration is critical for TTS compatibility. Ensure English vowel sounds are represented accurately in Devanagari.
 """
+
 
 EXAMPLES_PROMPT = """
 Below are some examples of how to use the tools - these are just examples to teach you on how to make the tool calls, the answers in these examples are not the actual answers.
@@ -539,7 +622,6 @@ system_prompt = f"{ROLE_PROMPT}\n{AUDIO_PROMPT}\n{TOOLS_PROMPT}\n{GROUNDING_PROM
 tools = [rag_search, register_complaint]
 
 
-
 """
     LANGRAPH AGENT SETUP
 """
@@ -552,7 +634,7 @@ model = ChatGroq(
 #   api_key=os.getenv("OPENROUTER_API_KEY"),
 #   base_url="https://openrouter.ai/api/v1",
 #   model="openai/gpt-oss-20b:free",
-#   max_tokens=180  
+#   max_tokens=180
 # )
 
 # from langchain_google_genai import ChatGoogleGenerativeAI
@@ -563,7 +645,7 @@ model = ChatGroq(
 #     temperature=0,
 #     max_tokens=180,
 #     # Convert system instructions to the format Gemini expects
-#     convert_system_message_to_human=True 
+#     convert_system_message_to_human=True
 # )
 
 # model = ChatOllama(
@@ -576,10 +658,9 @@ memory = InMemorySaver()
 
 agent = create_react_agent(
     model=model,
-    tools=tools, # This list now contains [rag_search, register_complaint]
+    tools=tools,  # This list now contains [rag_search, register_complaint]
     prompt=system_prompt,
     checkpointer=memory,
 )
 
 agent_config = {"configurable": {"thread_id": "default_user"}}
-
