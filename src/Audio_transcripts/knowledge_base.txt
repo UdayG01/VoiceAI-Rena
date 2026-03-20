@@ -1,0 +1,33 @@
+Renata is a leading company in the Manufacturing Technology, IIoT & AI Automation sector, founded in 2018. The co-founder of Renata is Anil Sagar. They have background experience of 20 years in the telecom domain prior to founding Renata and studied MBA - IIM Calcutta (1999) and Electrical Engineering - IIT Delhi (1997).
+
+---
+
+The core mission of Renata is: To provide intelligent data automation to the manufacturing sector using IoT and AI solutions.. We focus on Data Automation, Industrial IoT, AI-driven Automation, Process Digitalization to pioneer the next generation of smart enterprise solutions by leveraging advanced AI and IoT technologies.
+
+---
+
+Renata offers a comprehensive suite of services and solutions across various verticals. Our primary solution categories are: Production Automation, Utilities & Maintenance (Industrial IoT), Quality & Safety Compliance, Process and Manual Workflow Automation.
+
+---
+
+A detailed list of the capabilities and services provided by Renata includes: CNC/Machine Data Integration, PLC Machine Monitoring, Digital Twin, VR-based Operator Training, Product Traceability, Machine Health Monitoring, Preventive Maintenance, Controller Integration with Industrial Appliances, Environmental Monitoring (Air, Temp, Humidity, Pressure), Energy and Resource Optimization (Water, Gas, Compressed Air, Electricity), Energy Saving Solutions, Defect Detection, Product Counting, Text and Barcode Reading, Missing Part Detection, AI CCTV Monitoring, Safety and Compliance Monitoring, AI-driven Recommendations, Digital SOP Displays, Plan vs Actual Dashboards, Checklist Automation, CCTV-based SOP Compliance, Activity Monitoring, Robotic Process Automation (RPA), Mechanical Automation, CNC Tool Offset Automation, Robotic CNC Integration, Actuator and Sensor-based Automation.
+
+---
+
+Renata is proud to partner with industry-leading clients, including: Clients across India, Marelli India, Siddharth Grease and Lubes, JBM Group, Advance Valves. Our customer base spans various sectors, demonstrating the versatility and impact of our IIoT platform.
+
+---
+
+The 'Production Automation' vertical, which focuses on Improve machine, manpower and material productivity., offers key capabilities like: CNC/Machine Data Integration, PLC Machine Monitoring, Digital Twin, VR-based Operator Training, Product Traceability.
+
+---
+
+The 'Utilities & Maintenance (Industrial IoT)' vertical, which focuses on Prevent machine breakdowns and optimize resource usage., offers key capabilities like: Machine Health Monitoring, Preventive Maintenance, Controller Integration with Industrial Appliances, Environmental Monitoring (Air, Temp, Humidity, Pressure), Energy and Resource Optimization (Water, Gas, Compressed Air, Electricity), Energy Saving Solutions.
+
+---
+
+The 'Quality & Safety Compliance' vertical, which focuses on Ensure defect-free production and safe operations., offers key capabilities like: Defect Detection, Product Counting, Text and Barcode Reading, Missing Part Detection, AI CCTV Monitoring, Safety and Compliance Monitoring, AI-driven Recommendations.
+
+---
+
+The 'Process and Manual Workflow Automation' vertical, which focuses on Ensure operators follow standardized procedures and reduce human error., offers key capabilities like: Digital SOP Displays, Plan vs Actual Dashboards, Checklist Automation, CCTV-based SOP Compliance, Activity Monitoring, Robotic Process Automation (RPA), Mechanical Automation, CNC Tool Offset Automation, Robotic CNC Integration, Actuator and Sensor-based Automation.

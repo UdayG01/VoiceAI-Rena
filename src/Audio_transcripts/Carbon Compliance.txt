@@ -1,0 +1,188 @@
+
+[Speaker 1] (0:00 - 3:40)
+including automobile, chemical, plastics and so on and so forth. And we do solutions across operations, increasing the productivity, increasing the optimization on the utility expenses, automation, number of AI solutions, and we have also very specific focus on energy solutions as well. So under the same vertical, we have a solution where we have our customers in carbon compliance.
+
+And as you are aware that there are nine industries across which around 800 companies have been instructed to comply under CCTS program now run by Government of India. And then there are compliances which are required by CSRD if you are exporting your products to Europe. So these are the two compliances where we are supporting our customers to basically help out to the carbon compliance.
+
+So we can talk about our solutions, what we do so on and so forth. But essentially, currently, these are the industries which are under the purview taken by Government of India under CCTS. So companies who are falling in metal production, extraction, things like aluminum, iron and steel.
+
+So that is one segment. Then we have cement. Then we have chemical, petrochemicals, and textiles, including fertilizer and pulp and paper.
+
+So it also depends on the kind of, let's say, carbon equivalent carbon dioxide that you are releasing in the environment. So currently, all the companies which are producing more than 20,000 tons of carbon equivalent pollution, they are the ones which are covered by CCTS right now, as far as India regulation is concerned. So I'm not too sure whether you come under the same segment or not.
+
+But if you both come under the same segment, then obviously, over the next couple of years, the other companies which are producing more than 10,000 tons and then 5,000 tons. So that segment will be covered in the next two years across these industries and also a couple of other industries will be added and so on. So I can share information about what is covered under this scope.
+
+I can cover scope 1, scope 2, scope 3, what all is covered there, and what we do as a solution in this regard. So I can cover that. At this moment, if you have any queries, we can discuss.
+
+So do you want to understand scope 1, scope 2, scope 3? Yeah, just brief.
+
+[Speaker 2] (3:40 - 3:43)
+Arun sir, can you mute this one? There is a disturbance coming.
+
+[Speaker 1] (3:46 - 6:33)
+Yeah, so scope 1 compliance basically includes direct emissions, which are related to your operations. So let's say if you are combusting fuel directly in your factory for your operation, that is mostly covered in scope 1. So if you look at these items, it would be DG, diesel generators, LPG for heating, cooking, natural gas if you're using the furnaces, boilers, coal if there is, biomass if there is any, and so on.
+
+So the data required here is monthly fuel consumption, so in liters and so on. Purchase invoices, fuel storage, tank readings, and so on and so forth. So this is stationary combustion.
+
+Then you have mobile combustion. So it will be your own vehicles, which are owned by you. It could be cars, trucks, and so on.
+
+It could be forklifts. All these items. Here again, this kind of data is required, restriction number, vehicle type, fuel type, and so on and so forth.
+
+And you also have to maintain fuel belts if they centralize fueling, or driver lock books, fleet management systems, and so on and so forth. Then you have a process emissions, which are non-combustion emissions. Things like building gases, chemical reactions, carbonate consumption.
+
+So these kind of things. So any information on gas cylinders purchased and all items related to this process has to be let's say declared. And then you have fugitive emissions.
+
+These are like leakages. So refrigerants from your air conditioning system, aspirated ACs, HVACs, and so on. Even coal storage, fire suppression systems, and so on.
+
+So all this data is critical as far as the score fund compliance is concerned. And especially refrigerants have very high global warming potential. The carbon equivalent of any leakages in the refrigerants is very high.
+
+So these items become quite critical, fugitive emissions and so on. And then we have scope two. Scope two is indirect emissions from your purchase energy.
+
+So whatever energy we are buying from grid supply, for example. So that becomes part of scope two. So main grid supply, open access power, captive power plant, if you have any of them.
+
+And then you have purchased steam, heating, cooling, if you have any purchased items. So this is indirect usage of energy in your operations. Okay.
+
+[Speaker 2] (6:34 - 6:41)
+Where does the main electricity come, Mr. Anil? Scope two. Okay, not in scope one.
+
+[Speaker 1] (6:41 - 8:41)
+No. So it's purchased electricity because the combustion is happening outside your premises. It is in state electricity board.
+
+So you are not producing that directly. And then the scope three is value chain emissions. So your upstream and downstream usage of carbon equivalent items.
+
+So it could be your customers, and it could also be your suppliers. Okay. So this data would become important.
+
+As far as you are concerned, it will be the third leg that government will ask you. But your customers and suppliers might ask you before that. So if any of your customers or suppliers, they are already covered before you, then they will ask you these things before you are covered.
+
+So all those items which are your scope one and scope two, that will become their scope three. So that's why they will ask you all this data. So big companies, antique VCO and VC and so on and so forth.
+
+So these are the kind of companies who will then ask you if you are their customer or supplier. So that's how it is. So this is for CCTS.
+
+And then there's another compliance for CSRD, European CSRD. So we can look at that as well. So if we look at our services, let's come back here.
+
+So then there are penalties also if you don't comply to these items, depending on the kind of emissions that you're doing. So that we can look at later. But for that, we need to understand how much, let's say impact you are having through carbon compliance.
+
+[Speaker 2] (8:41 - 8:42)
+Okay.
+
+[Speaker 1] (8:43 - 10:00)
+And then there are various different costs of inaction that we can discuss. But as far as our solutions are concerned, what we do is we do not just, let's say, we don't only give you the platform, the software platform, where you can put all this data so that this is readily available for compliance. But we also do automation around it.
+
+So we will, for example, if you want to collect information about, let's say, diesel being consumed in your diesel set. So we will install a sensor there so that the data keeps coming to your platform directly. So you will always have real-time data of all the items which you can automate.
+
+So we will do end-to-end solution as far as IoT hardware is concerned. We will also provide the software platform. And we'll also put you in touch with, let's say, audit companies who will do the audit for compliance.
+
+So things like BEE and some of the other players, they would then do the audit. But we will help you get everything done end-to-end. So that's what we do.
+
+[Speaker 2] (10:01 - 10:02)
+Okay.
+
+[Speaker 1] (10:04 - 10:53)
+So I'm assuming your company is not directly covered right now. But I think it would be a good idea to start preparing for it and start thinking in that direction. Because it will take time, all these things to be done for you.
+
+It will take time in terms of the initial study to be done to understand what are the requirements and, let's say, coordinating with all the functions in your company and making them ready for this kind of compliance. It will take some time. So whenever you think is a good time, we can start discussing in that direction.
+
+Yeah. You can get more information about this from our website. So a lot of information is available here.
+
+[Speaker 2] (10:54 - 11:35)
+Okay. Now, I went through your website, actually. They were asking some guide and all that.
+
+Coming back to this one, I have done the G, what do you call that, GHG assessment a couple of years back. Okay. I can share you the report where it shows you scope one, scope two, scope three benchmarks.
+
+Just one second. I will share you the file so you can understand a little bit. Sure.
+
+Are you able to see my screen?
+
+[Speaker 1] (11:36 - 11:36)
+Yes.
+
+[Speaker 2] (11:47 - 11:48)
+You can see my screen, right?
+
+[Speaker 1] (11:49 - 11:50)
+Yes. One second.
+
+[Speaker 2] (11:54 - 12:53)
+This was my emission for, I think, a couple of units. You can see the tonnage because they have split it into Bangalore unit. I have some six or eight units.
+
+Six was that time. Right now, another two more have got added. You see the location.
+
+This was initially for the Bangalore units, actually. We need one, two, three for Vidya. Then they continued with some other unit.
+
+Let me go down. Yeah, this went to my Chikmangalur unit. This is about the Kammam unit.
+
+Kammam is the Telangana one unit, Telangana unit. Then this is for our, there's a place called Harole in Karnataka, that unit. We divided the report into across the unit, actually.
+
+[Speaker 1] (12:54 - 12:56)
+Yeah, it has to be in one unit only.
+
+[Speaker 2] (12:56 - 13:01)
+Yeah. So, that was the scenario we did it.
+
+[Speaker 1] (13:01 - 13:04)
+Yeah. So, in Kammam unit you have...
+
+[Speaker 2] (13:04 - 13:12)
+Yeah. We have seven units. I have 11 units, but I want to do only for six to seven units, not everyone.
+
+[Speaker 1] (13:13 - 13:14)
+Right.
+
+[Speaker 2] (13:14 - 13:29)
+Because some other unit which doesn't do much value addition to the group, actually. It's like more like a code on type, you know, storage type. Right.
+
+Yeah. So, coming back to this. So, this will be in a similar way, right?
+
+The assessment.
+
+[Speaker 1] (13:30 - 13:34)
+Yeah, this will be in a similar way, but beyond assessment, there has to be a compliance.
+
+[Speaker 2] (13:35 - 13:35)
+Yes.
+
+[Speaker 1] (13:35 - 13:41)
+And if you want to do automation of data, that is another step which you can do.
+
+[Speaker 2] (13:41 - 14:30)
+As you told, you will be providing us the hardware to capture the data and all that. Right now, with this company support, whatever XYZ company, I got this assessment done for a couple of years. It was we who provided major of the data.
+
+They gave a template. We updated all the data and they converted it into a report. Actually, yeah, they did, but they asked us all the purchase bills, electricity bills and your transport vehicles.
+
+We have a lot of vehicles in our vehicle and all that stuff. Then you are even the business travel travels and all that data was asked how much was the air ticketing book because they calculated all that emissions also. So, this will be on a similar way or anything different from this.
+
+[Speaker 1] (14:30 - 14:42)
+So, there will be some data which will be manually collected as you have done, for example. But then there are data points which can be directly collected from these points.
+
+[Speaker 2] (14:43 - 14:43)
+Okay.
+
+[Speaker 1] (14:44 - 15:04)
+So, that data sanity has to be checked for all the items, both for real-time update and manual update. But then again, it will become a system for you. This is not going to be a report kind of stuff every time.
+
+That will be done by the audit company. Okay. Who will give you the certificate for CCTS.
+
+[Speaker 2] (15:04 - 15:08)
+Okay. Now, which companies do the audit? I never done the audit.
+
+[Speaker 1] (15:09 - 15:44)
+Yeah. So, this has come up only last year, right? CCTS.
+
+Yeah. So, by March and this year, I think all those companies which are around 800 companies which have been chosen for this kind of study. So, they have to do everything by March.
+
+So, companies like BE, Bureau of Energy Efficiency is one of them. Okay. Control Union and all that stuff.
+
+Yeah. Yeah. So, they are the ones who do it for India.
+
+Okay. And if you are exporting to Europe, then obviously, there will be some different companies who will evaluate. Yeah.
+
+[Speaker 2] (15:44 - 15:54)
+You know, normally they ask ECO, what is 4 and ZX and all that. ECO is a very important thing for Europe. Yeah.
+
+Because they do their own calculation.
+
+[Speaker 1] (15:55 - 16:01)
+Right. Right. But I think it's good that you already have some idea about the emissions.
+
+Yeah.
+

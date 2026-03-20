@@ -1,0 +1,184 @@
+{
+  "compliance_framework": {
+    "domain": "Carbon Compliance & Sustainability",
+    "regulations": [
+      {
+        "name": "CCTS (Carbon Credit Trading Scheme)",
+        "region": "India",
+        "authority": "Government of India",
+        "scope": "Mandatory compliance for approximately 800 companies across 9 industries.",
+        "timeline_deadline": "March (Current Year)"
+      },
+      {
+        "name": "CSRD (Corporate Sustainability Reporting Directive)",
+        "region": "Europe",
+        "applicability": "Required if exporting products to Europe.",
+        "key_metric": "ECO score and Carbon Equivalent calculations."
+      }
+    ]
+  },
+  "applicability_criteria": {
+    "target_industries": [
+      "Automobile",
+      "Chemical & Petrochemicals",
+      "Plastics",
+      "Metal Production & Extraction (Aluminum, Iron, Steel)",
+      "Cement",
+      "Textiles",
+      "Fertilizer",
+      "Pulp and Paper"
+    ],
+    "emission_thresholds": [
+      {
+        "status": "Current Phase (Immediate Compliance)",
+        "threshold": "Producing > 20,000 tons of Carbon Equivalent pollution"
+      },
+      {
+        "status": "Future Phase (Next ~2 Years)",
+        "threshold": "Producing > 10,000 tons"
+      },
+      {
+        "status": "Long-term Phase",
+        "threshold": "Producing > 5,000 tons"
+      }
+    ]
+  },
+  "emission_scopes": [
+    {
+      "id": "scope_1",
+      "name": "Direct Emissions",
+      "definition": "Emissions directly related to operations where combustion happens inside the factory premises.",
+      "categories": [
+        {
+          "type": "Stationary Combustion",
+          "sources": [
+            "Diesel Generators (DG)",
+            "LPG (Heating/Cooking)",
+            "Natural Gas (Furnaces/Boilers)",
+            "Coal",
+            "Biomass"
+          ],
+          "data_requirements": [
+            "Monthly fuel consumption (liters)",
+            "Purchase invoices",
+            "Fuel storage tank readings"
+          ]
+        },
+        {
+          "type": "Mobile Combustion",
+          "sources": [
+            "Company-owned vehicles (Cars, Trucks)",
+            "Forklifts"
+          ],
+          "data_requirements": [
+            "Vehicle Registration Number",
+            "Vehicle Type",
+            "Fuel Type",
+            "Fuel bills (if centralized fueling)",
+            "Driver log books",
+            "Fleet management system data"
+          ]
+        },
+        {
+          "type": "Process Emissions (Non-combustion)",
+          "sources": [
+            "Building gases",
+            "Chemical reactions",
+            "Carbonate consumption",
+            "Gas cylinders purchased"
+          ],
+          "data_requirements": [
+            "Purchase information on gas cylinders",
+            "Process-related consumption data"
+          ]
+        },
+        {
+          "type": "Fugitive Emissions",
+          "sources": [
+            "Refrigerant leakages (ACs, HVACs)",
+            "Aspirated ACs",
+            "Coal storage",
+            "Fire suppression systems"
+          ],
+          "criticality": "High Global Warming Potential (GWP) for refrigerants.",
+          "data_requirements": [
+            "Leakage data",
+            "Refill records"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scope_2",
+      "name": "Indirect Emissions",
+      "definition": "Emissions from purchased energy where combustion happens outside premises (e.g., at the State Electricity Board).",
+      "categories": [
+        {
+          "type": "Purchased Electricity",
+          "sources": [
+            "Main Grid Supply",
+            "Open Access Power",
+            "Captive Power Plant"
+          ]
+        },
+        {
+          "type": "Other Purchased Energy",
+          "sources": [
+            "Purchased Steam",
+            "Heating",
+            "Cooling"
+          ]
+        }
+      ],
+      "data_requirements": [
+        "Electricity bills",
+        "Purchase records for steam/heat/cooling"
+      ]
+    },
+    {
+      "id": "scope_3",
+      "name": "Value Chain Emissions",
+      "definition": "Upstream and downstream usage of carbon equivalent items.",
+      "sources": [
+        "Suppliers (Upstream)",
+        "Customers (Downstream)"
+      ],
+      "trigger_context": "If a customer/supplier is already under compliance, they will mandate this data from you immediately."
+    }
+  ],
+  "company_offerings": {
+    "approach": "End-to-End Solution (IoT Hardware + Software + Audit Support)",
+    "solutions": [
+      {
+        "component": "IoT & Automation",
+        "function": "Real-time data capture to replace manual logging.",
+        "examples": [
+          "Sensors for Diesel Sets (measuring fuel consumption)",
+          "Direct integration with utility assets"
+        ]
+      },
+      {
+        "component": "Software Platform",
+        "function": "Centralized dashboard for data entry, storage, and compliance reporting.",
+        "features": [
+          "Real-time data updates",
+          "Manual data entry modules"
+        ]
+      },
+      {
+        "component": "Audit & Certification Support",
+        "function": "Coordination with authorized audit agencies for final certification.",
+        "partners": [
+          "BEE (Bureau of Energy Efficiency)",
+          "Control Union"
+        ],
+        "process": [
+          "Initial study of requirements",
+          "Coordination with company functions",
+          "Preparation for audit",
+          "Final Certification"
+        ]
+      }
+    ]
+  }
+}

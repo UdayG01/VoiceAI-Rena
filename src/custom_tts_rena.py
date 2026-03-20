@@ -12,7 +12,8 @@ from fastrtc import (
     ReplyOnPause,
     Stream,
     SileroVadOptions,
-    audio_to_bytes
+    audio_to_bytes,
+    get_cloudflare_turn_credentials # Added for remote TURN Server tunneling
 )
 from fastapi import FastAPI
 import gradio as gr
@@ -27,14 +28,8 @@ from faster_whisper import WhisperModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from snac import SNAC
 
-# Transliteration import
-try:
-    from ai4bharat.transliteration import XlitEngine
-except ImportError:
-    logger.warning("ai4bharat-transliteration not installed. Please run: pip install ai4bharat-transliteration")
-
 # --------------------------------------------------------------------
-# 1. Initialize the Local Models (STT, TTS, and Transliteration)
+# 1. Initialize the Local Models (STT & TTS)
 # --------------------------------------------------------------------
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -52,16 +47,6 @@ try:
     logger.info("✅ Local STT model loaded successfully.")
 except Exception as e:
     logger.error(f"❌ Failed to load Faster-Whisper model: {e}")
-
-# Load IndicXlit Transliteration Engine
-try:
-    logger.info("⏳ Loading IndicXlit Transliteration Engine...")
-    # Initialize for Hindi, translating from English script, with a beam width of 4 for speed
-    xlit_engine = XlitEngine("hi", beam_width=4, rescore=True, src_script_type="en")
-    logger.info("✅ IndicXlit loaded successfully.")
-except Exception as e:
-    logger.error(f"❌ Failed to load IndicXlit model: {e}")
-    xlit_engine = None
 
 # Load Custom Orpheus 3B TTS and SNAC Decoder
 try:
@@ -129,7 +114,7 @@ def generate_custom_tts(text: str, voice: str = "tara") -> Tuple[int, np.ndarray
     # Ensure length is a multiple of 7
     length = (len(audio_tokens) // 7) * 7
     if length == 0:
-        return (24000, np.zeros(0, dtype=np.float32))
+        return (24000, np.zeros(0, dtype=np.int16))
         
     audio_tokens = audio_tokens[:length]
     
@@ -157,6 +142,10 @@ def generate_custom_tts(text: str, voice: str = "tara") -> Tuple[int, np.ndarray
         audio_waveform = snac_model.decode([c0_tensor, c1_tensor, c2_tensor])
         
     audio_data = audio_waveform.squeeze().cpu().numpy()
+    
+    # REQUIRED: Scale float32 to int16 PCM format for WebRTC compatibility
+    audio_data = (np.clip(audio_data, -1.0, 1.0) * 32767).astype(np.int16)
+    
     return (24000, audio_data)
 
 
@@ -173,13 +162,14 @@ def clean_text_for_tts(text: str) -> str:
     text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
     return text.strip()
 
+
 def response(
     audio: tuple[int, np.ndarray],
     user_name: str = "",
     user_email: str = ""
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
-    Process audio input locally, generate response via Agent, transliterate, and deliver custom TTS.
+    Process audio input locally, generate response via Agent, and deliver custom TTS.
     """
     logger.info("🎙️ Received audio input")
     if user_name or user_email:
@@ -203,7 +193,8 @@ def response(
 
     logger.info(f'📝 Transcribed: "{transcript}"')
     
-    lang_instruction = " (IMPORTANT: Reply in Hinglish)" if detected_lang == "hi" else ""
+    # Explicitly instruct the LLM to output Devanagari if Hindi is detected
+    lang_instruction = " (IMPORTANT: Reply in native Hindi Devanagari script)" if detected_lang == "hi" else ""
     combined_input = f"{transcript}{lang_instruction}"
 
     if user_name or user_email:
@@ -219,27 +210,21 @@ def response(
     
     response_text = agent_response["messages"][-1].content
     cleaned_text = clean_text_for_tts(response_text)
-    logger.info(f'💬 Response (Cleaned, Roman): "{cleaned_text}"')
+    logger.info(f'💬 Response (Cleaned, Devanagari): "{cleaned_text}"')
 
-    # Transliteration
-    if xlit_engine:
-        logger.debug("🔠 Transliterating response to Devanagari...")
-        transliterated_dict = xlit_engine.translit_sentence(cleaned_text)
-        devanagari_text = transliterated_dict.get('hi', cleaned_text) # Fallback to original if dict key is missing
-        logger.info(f'🔠 Transliterated (Devanagari): "{devanagari_text}"')
-    else:
-        logger.warning("⚠️ Transliteration engine missing. Passing Roman text directly to TTS.")
-        devanagari_text = cleaned_text
-
-    # Custom TTS Generation
+    # Custom TTS Generation (Transliteration removed, expecting LLM native Devanagari)
     logger.debug("🔊 Generating speech using Custom Orpheus TTS...")
-    audio_chunk = generate_custom_tts(devanagari_text, voice="tara")
+    audio_chunk = generate_custom_tts(cleaned_text, voice="tara")
     yield audio_chunk
 
 
 def startup(*args) -> Generator[Tuple[int, np.ndarray], None, None]:
     """Initial greeting when connection is established."""
-    # Hardcoded Devanagari greeting to save processing time on startup
+    # 1. Yield a dummy silent int16 array instantly to satisfy the WebRTC handshake timeout
+    logger.debug("🔊 Sending dummy audio to keep WebRTC handshake alive...")
+    yield (24000, np.zeros(24000, dtype=np.int16))
+    
+    # 2. Then generate and yield the actual greeting
     greeting_text = "नमस्ते, मैं रेना हूँ, रेनाटा की सपोर्ट असिस्टेंट। आज मैं आपकी कैसे मदद कर सकती हूँ?"
     logger.debug("🔊 Generating startup speech...")
     yield generate_custom_tts(greeting_text, voice="tara")
@@ -250,6 +235,7 @@ def create_stream() -> Stream:
     return Stream(
         modality="audio",
         mode="send-receive",
+        rtc_configuration=get_cloudflare_turn_credentials, # Cloudflare Relay for strict firewalls
         handler=ReplyOnPause(
             response,
             algo_options=AlgoOptions(speech_threshold=0.6),
@@ -276,21 +262,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     stream = create_stream()
-    logger.info("🎧 Stream handler configured with Custom TTS and Transliteration")
+    logger.info("🎧 Stream handler configured with Custom TTS (Native Devanagari)")
 
     if args.remote:
-        logger.info("🌍 Launching REMOTE voice endpoint (ngrok + FastAPI)...")
-        from pyngrok import ngrok
-        import uvicorn
-
-        ngrok.set_auth_token(os.getenv("NGROK_AUTH_TOKEN"))
-        app = FastAPI()
-        stream.mount(app)
-        app = gr.mount_gradio_app(app, stream.ui, path="/")
-
-        public_url = ngrok.connect(8000, "http")
-        logger.success(f"🔗 Public Voice Endpoint: {public_url}")
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        # Replaced ngrok with Gradio Share + TURN Server for proper UDP routing
+        logger.info("🌍 Launching REMOTE voice endpoint (Gradio Share + Cloudflare TURN)...")
+        stream.ui.launch(share=True)
         
     elif args.phone:
         logger.info("📞 Launching with phone interface...")
