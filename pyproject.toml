@@ -27,7 +27,7 @@ dependencies = [
     "langchain-redis>=0.2.4",
     "ollama>=0.6.1",
     "langchain-ollama>=0.3.10",
-    "openai-whisper>=20250625",
+    "openai-whisper",
     "faster-whisper>=1.2.1",
     "rank-bm25>=0.2.2",
     "snac>=1.2.1",
@@ -35,8 +35,9 @@ dependencies = [
     "hf-xet>=1.2.0",
     "edge-tts>=7.2.7",
     "langchain-google-genai>=2.1.12",
-    "kaldialign>=0.9.0",
-    "nemo_toolkit[tts] @ git+https://github.com/NVIDIA/NeMo.git"
+    "kaldialign>=0.9.3",
+    "nemo_toolkit[tts] @ git+https://github.com/NVIDIA/NeMo.git",
+    "protobuf>=6.31.1",
 ]
 
 

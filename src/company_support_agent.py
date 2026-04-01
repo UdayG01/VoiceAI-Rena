@@ -507,6 +507,8 @@ AUDIO_PROMPT = """
    - **NO LISTS**: Do NOT use numbered lists (1. 2. 3.) or bullet points (-). Speak in full sentences.
    - **NO EMOTICONS**: Do NOT use emojis (e.g., 😊, 🚀).
    - **PLAIN TEXT ONLY**: Write in simple, conversational paragraphs. Instead of a list, say "First, we do X. Second, we do Y."
+   - **SHORT SENTENCES**: Prefer short, natural sentences so speech can begin quickly after the first sentence is ready.
+   - **USE CLEAR ENDINGS**: End thoughts clearly with normal sentence punctuation such as à¥¤, ., ?, or ! so the audio system can speak incrementally.
 """
 
 TOOLS_PROMPT = """
@@ -575,6 +577,7 @@ SPECIFIC_INFO_PROMPT = """
 LANGUAGE_PROMPT = """
 5. **LANGUAGE & SCRIPT HANDLING (PHONETIC DEVANAGARI ONLY)**:
    - **Script Rule**: Your entire response MUST be written in **Devanagari script**. Do NOT use Latin/Roman alphabets (A-Z) under any circumstances.
+   - **FINAL OUTPUT RULE**: If any Latin letters appear in the user-facing response, rewrite that text into pure Devanagari before it is spoken.
    - **Language Selection**:
      - If the user query is in **English**: Respond in English, but **transliterate** the English words phonetically into Devanagari. Do NOT translate the meaning into Hindi.
        - *Example*: "Hi, I am Rena, Renata's support assistant" -> "हाइ, आइ एम रेना, रेनाटास सपोर्ट असिस्टन्ट"
@@ -592,28 +595,28 @@ Below are some examples of how to use the tools - these are just examples to tea
 **User**: Who founded Renata?
 **Tool Call**: (Calls `rag_search` with arguments: {"query": "Who founded Renata?"})
 **Tool Output**: {"result": "Renata was founded by Anil Sagar in 2019."}
-**Assistant**: Renata was founded by Anil Sagar in 2019.
+**Assistant**: रेनाटा वॉज़ फाउंडेड बाय अनिल सागर इन 2019.
 
 **User**: I'm facing an issue with the login.
-**Assistant**: I can help you with that. Could you please provide your name and email address so I can create a ticket?
+**Assistant**: आई कॅन हेल्प यू विद दैट. कुड यू प्लीज़ प्रोवाइड योर नेम एंड ईमेल अड्रेस सो आई कॅन क्रिएट अ टिकट?
 
 **User**: My name is Alex and email is alex@test.com. The login page gives a 404 error.
 **Tool Call**: (Calls `register_complaint` with arguments: {"name": "Alex", "email": "alex@test.com", "issue": "Login page gives 404 error"})
 **Tool Output**: {"ticket_id": "TKT-999", "message": "Complaint registered."}
-**Assistant**: I have successfully registered your complaint. Your ticket ID is TKT-999. A support specialist will reach out to you shortly. Thank you for contacting Renata Support.
+**Assistant**: आई हैव सक्सेसफुली रेजिस्टर्ड योर कम्प्लेंट. योर टिकट आईडी इज़ टीकेटी-999. अ सपोर्ट स्पेशलिस्ट विल रीच आउट टु यू शॉर्टली. थैंक यू फॉर कॉन्टैक्टिंग रेनाटा सपोर्ट.
 
 **User**: What are the mechanical automation use cases?
 **Tool Call**: (Calls `rag_search` with arguments: {"query": "mechanical automation use cases"})
 **Tool Output**: {"result": "SOLUTIONS - mechanical automation use cases: Robotics integration with CNC machines, CNC tool offset automation, Actuator deployment, Scanner deployment"}
-**Assistant**: Renata's mechanical automation use cases include robotics integration with CNC machines, CNC tool offset automation, actuator deployment, and scanner deployment.
+**Assistant**: रेनाटाज़ मेकैनिकल ऑटोमेशन यूज़ केसेज़ इन्क्लूड रोबॉटिक्स इंटीग्रेशन विद सीएनसी मशीन्स, सीएनसी टूल ऑफसेट ऑटोमेशन, ऐक्टुएटर डिप्लॉयमेंट, एंड स्कैनर डिप्लॉयमेंट.
 
 **User**: Renata किन उद्योगों को सेवाएं प्रदान करती है?
 **Tool Call**: (Calls `rag_search` with arguments: {"query": "Renata किन उद्योगों को सेवाएं प्रदान करती है?"})
 **Tool Output**: {"result": "Renata serves the Automobile industry (60-70%) and other sectors like Textiles, Chemicals, and Compressors."}
-**Assistant**: Renata mainly Automobile industry (60-70%) ko serve karti hai. Iske alawa, yeh Textiles, Chemicals aur Compressors jaise sectors mein bhi services provide karti hai.
+**Assistant**: रेनाटा मेनली ऑटोमोबाइल इंडस्ट्री (60-70%) को सर्व करती है। इसके अलावा, यह टेक्सटाइल्स, केमिकल्स और कंप्रेसर्स जैसे सेक्टर्स में भी सर्विसेज प्रोवाइड करती है।
 
 **User**: Hello.
-**Assistant**: Hello! I am Rena, Renata's support assistant. How can I help you today?
+**Assistant**: हैलो! आई ऐम रेना, रेनाटा'ज़ सपोर्ट असिस्टेंट. हाउ कॅन आई हेल्प यू टुडे?
 """
 
 system_prompt = f"{ROLE_PROMPT}\n{AUDIO_PROMPT}\n{TOOLS_PROMPT}\n{GROUNDING_PROMPT}\n{SPECIFIC_INFO_PROMPT}\n{LANGUAGE_PROMPT}\n{EXAMPLES_PROMPT}"
@@ -625,10 +628,10 @@ tools = [rag_search, register_complaint]
 """
     LANGRAPH AGENT SETUP
 """
-model = ChatGroq(
-    model="llama-3.1-8b-instant",
-    max_tokens=256,
-)
+# model = ChatGroq(
+#     model="llama-3.1-8b-instant",
+#     max_tokens=256,
+# )
 
 # model = ChatOpenAI(
 #   api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -648,12 +651,12 @@ model = ChatGroq(
 #     convert_system_message_to_human=True
 # )
 
-# model = ChatOllama(
-#     model="qwen3:4b",
-#     #model="gpt-oss:20b",
-#     temperature=0,
-#     max_tokens=180,
-# )
+model = ChatOllama(
+    model="qwen3:8b",
+    #model="gpt-oss:20b",
+    temperature=0,
+    max_tokens=180,
+)
 memory = InMemorySaver()
 
 agent = create_react_agent(
@@ -664,3 +667,50 @@ agent = create_react_agent(
 )
 
 agent_config = {"configurable": {"thread_id": "default_user"}}
+
+
+TRANSLITERATION_PROMPT = """
+You are a phonetic transliteration engine.
+
+Task:
+- Rewrite the provided sentence into pure Devanagari script.
+- If the sentence is already fully in Devanagari, return it unchanged.
+- Transliterate phonetically. Do NOT translate the meaning into Hindi.
+- Preserve punctuation and sentence boundaries.
+- Output only the rewritten sentence.
+- Never output Latin/Roman letters.
+"""
+
+
+transliteration_model = ChatOllama(
+    model="qwen3:8b",
+    temperature=0,
+    max_tokens=180,
+)
+
+
+def contains_latin_text(text: str) -> bool:
+    """Return True if the text contains Latin letters that need transliteration."""
+    return any(("A" <= char <= "Z") or ("a" <= char <= "z") for char in text)
+
+
+def transliterate_to_devanagari(text: str) -> str:
+    """Use Ollama to phonetically transliterate one sentence into Devanagari."""
+    prompt = (
+        f"{TRANSLITERATION_PROMPT}\n\n"
+        f"Sentence:\n{text}\n\n"
+        "Rewritten sentence:"
+    )
+    rewritten = transliteration_model.invoke(prompt).content
+    return rewritten.strip() if isinstance(rewritten, str) else text
+
+
+def ensure_devanagari_sentence(text: str) -> str:
+    """
+    Return the sentence unchanged if it already contains no Latin letters.
+    Otherwise transliterate it phonetically into Devanagari.
+    """
+    if not contains_latin_text(text):
+        return text
+    rewritten = transliterate_to_devanagari(text)
+    return rewritten or text
